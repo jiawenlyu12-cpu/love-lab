@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Love-Lab · 开发文档 · 开发文档</title>
+<style>
+:root {
+  --bg: #fbfaf7;
+  --ink: #1a1f2e;
+  --ink-soft: #2d3344;
+  --text: #2b303f;
+  --text-soft: #5a6076;
+  --muted: #8a8f9e;
+  --line: #e6e3dc;
+  --line-soft: #f0ede4;
+  --accent: #c9a876;
+  --accent-strong: #b08a4a;
+  --rose: #c44141;
+  --code-bg: #1a1f2e;
+  --code-text: #e8e4dc;
+  --inline-code-bg: #f1ede2;
+  --quote-bg: #faf6ea;
+  --quote-bar: #c9a876;
+  --table-head: #2d3344;
+  --table-row-alt: #faf8f3;
+  --shadow: 0 1px 3px rgba(26, 31, 46, 0.05), 0 4px 16px rgba(26, 31, 46, 0.05);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "Segoe UI", sans-serif;
+  font-size: 15.5px;
+  line-height: 1.78;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "palt", "kern";
+}
+
+.cover {
+  height: 100vh;
+  min-height: 640px;
+  background: linear-gradient(135deg, #1a1f2e 0%, #232a3f 55%, #3a2c44 100%);
+  color: #faf8f3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  position: relative;
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle 2px at 20% 30%, rgba(212,184,126,0.3) 0, transparent 50%),
+    radial-gradient(circle 1px at 70% 40%, rgba(212,184,126,0.2) 0, transparent 50%),
+    radial-gradient(circle 2px at 40% 70%, rgba(212,184,126,0.25) 0, transparent 50%),
+    radial-gradient(circle 1px at 80% 80%, rgba(212,184,126,0.15) 0, transparent 50%);
+  pointer-events: none;
+}
+
+.cover-mark {
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: var(--accent);
+  margin-bottom: 36px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-title {
+  font-size: 52px;
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.35;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-divider {
+  width: 60px;
+  height: 1px;
+  background: var(--accent);
+  margin: 32px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-subtitle {
+  font-size: 17px;
+  font-weight: 300;
+  color: rgba(250, 248, 243, 0.75);
+  text-align: center;
+  max-width: 640px;
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-meta {
+  position: absolute;
+  bottom: 60px;
+  left: 60px;
+  font-size: 11px;
+  color: rgba(212, 184, 126, 0.6);
+  letter-spacing: 0.2em;
+  z-index: 1;
+}
+
+.cover-version {
+  position: absolute;
+  bottom: 60px;
+  right: 60px;
+  font-size: 11px;
+  color: rgba(212, 184, 126, 0.6);
+  letter-spacing: 0.2em;
+  z-index: 1;
+}
+
+.layout {
+  display: flex;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 60px 36px 80px 36px;
+  gap: 60px;
+}
+
+.side-toc {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 40px;
+  align-self: flex-start;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.side-toc .toc-title {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.side-toc ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-left: 1px solid var(--line);
+}
+
+.side-toc li {
+  padding: 4px 0 4px 14px;
+  line-height: 1.55;
+}
+
+.side-toc li.toc-h3 {
+  padding-left: 26px;
+  font-size: 12px;
+}
+
+.side-toc a {
+  color: var(--text-soft);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.side-toc a:hover { color: var(--accent-strong); }
+
+.content {
+  flex: 1;
+  background: white;
+  padding: 56px 70px;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  max-width: 920px;
+  min-width: 0;
+}
+
+.content h1 { display: none; }
+
+.content h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 56px 0 20px 0;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--ink);
+  letter-spacing: 0.01em;
+  position: relative;
+}
+.content h2:first-of-type { margin-top: 0; }
+.content h2::before {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin: 36px 0 12px 0;
+  letter-spacing: 0.01em;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+
+.content h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin: 24px 0 10px 0;
+  font-family: "SF Mono", "JetBrains Mono", "Menlo", monospace;
+}
+
+.content p {
+  margin: 12px 0;
+  color: var(--text);
+}
+
+.content strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.content em {
+  color: var(--rose);
+  font-style: normal;
+}
+
+.content a {
+  color: var(--accent-strong);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+.content a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+.content ul, .content ol {
+  margin: 12px 0;
+  padding-left: 22px;
+}
+.content li { margin: 5px 0; }
+.content ul li::marker { color: var(--accent-strong); }
+
+.content blockquote {
+  margin: 18px 0;
+  padding: 14px 22px;
+  background: var(--quote-bg);
+  border-left: 4px solid var(--quote-bar);
+  border-radius: 0 4px 4px 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+.content blockquote p { margin: 6px 0; }
+.content blockquote strong { color: var(--rose); }
+
+.content hr {
+  margin: 48px 0;
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line), transparent);
+  position: relative;
+}
+.content hr::before {
+  content: "◆";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 0 10px;
+  color: var(--accent);
+  font-size: 9px;
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 13.5px;
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.content thead { background: var(--table-head); }
+.content th {
+  color: white;
+  font-weight: 500;
+  text-align: left;
+  padding: 10px 14px;
+  letter-spacing: 0.02em;
+}
+.content td {
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--text);
+}
+.content tbody tr:nth-child(even) { background: var(--table-row-alt); }
+.content tbody tr:hover { background: #f5f0e6; }
+
+.content code {
+  font-family: "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+  font-size: 12.5px;
+  background: var(--inline-code-bg);
+  color: var(--ink);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.content pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 18px 22px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 18px 0;
+}
+.content pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* syntax highlight tokens */
+.codehilite .k, .codehilite .kn, .codehilite .kd { color: #c594c5; }
+.codehilite .s, .codehilite .s1, .codehilite .s2 { color: #99c794; }
+.codehilite .c, .codehilite .c1, .codehilite .cm { color: #6a6a7a; font-style: italic; }
+.codehilite .n, .codehilite .nn { color: #e8e4dc; }
+.codehilite .nb, .codehilite .nf { color: #6699cc; }
+.codehilite .mi, .codehilite .mf { color: #f99157; }
+.codehilite .o { color: #c594c5; }
+
+.side-toc::-webkit-scrollbar { width: 4px; }
+.side-toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+@media (max-width: 1080px) {
+  .layout {
+    flex-direction: column;
+    padding: 40px 20px;
+    gap: 36px;
+  }
+  .side-toc {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
+  .content {
+    padding: 36px 24px;
+    max-width: none;
+  }
+  .cover-title { font-size: 34px; }
+  .cover-subtitle { font-size: 14px; }
+}
+
+@media print {
+  body { background: white; }
+  .layout { display: block; padding: 0; max-width: none; }
+  .side-toc { display: none; }
+  .content { box-shadow: none; padding: 30px 40px; max-width: none; border-radius: 0; }
+  .cover { page-break-after: always; height: 100vh; }
+  .content h2 { page-break-before: auto; page-break-after: avoid; }
+  .content h3, .content h4 { page-break-after: avoid; }
+  .content table, .content pre, .content blockquote { page-break-inside: avoid; }
+  .content pre {
+    background: #f5f5f5;
+    color: var(--ink);
+    border: 1px solid #ddd;
+  }
+  .codehilite .k, .codehilite .kn, .codehilite .kd { color: #6a3aa0; }
+  .codehilite .s, .codehilite .s1, .codehilite .s2 { color: #2a7a2a; }
+  .codehilite .c, .codehilite .c1, .codehilite .cm { color: #888; }
+  .codehilite .n, .codehilite .nn { color: var(--ink); }
+  .codehilite .nb, .codehilite .nf { color: #2070b0; }
+  .codehilite .mi, .codehilite .mf { color: #c45a1a; }
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="cover-mark">DEVELOPER GUIDE</div>
+  <h1 class="cover-title">AI Love-Lab · 开发文档</h1>
+  <div class="cover-divider"></div>
+  <div class="cover-subtitle">当前实现状态的完整技术文档。给后续开发 / 维护 / 接手的人看。</div>
+  <div class="cover-meta">2026 · 05 · 12</div>
+  <div class="cover-version">DEV v1.0</div>
+</section>
+
+<div class="layout">
+  <nav class="side-toc"><div class="toc-title">目录</div><ul><li class="toc-h2"><a href="#0">0. 一句话定位</a></li><li class="toc-h2"><a href="#1">1. 技术栈与依赖</a></li><li class="toc-h2"><a href="#2">2. 目录结构</a></li><li class="toc-h2"><a href="#3">3. 用户流程</a></li><li class="toc-h2"><a href="#4">4. 数据模型</a></li><li class="toc-h3"><a href="#41">4.1 基础</a></li><li class="toc-h3"><a href="#42">4.2 关系状态（核心新增）</a></li><li class="toc-h3"><a href="#43">4.3 回合</a></li><li class="toc-h3"><a href="#44">4.4 终局</a></li><li class="toc-h3"><a href="#45-simulationstate">4.5 全局 SimulationState</a></li><li class="toc-h2"><a href="#5">5. 关系状态机详解</a></li><li class="toc-h3"><a href="#51-4">5.1 4 维的含义</a></li><li class="toc-h3"><a href="#52">5.2 初始值来源</a></li><li class="toc-h3"><a href="#53-delta">5.3 delta 推进</a></li><li class="toc-h3"><a href="#54-llm">5.4 状态如何影响 LLM 输出</a></li><li class="toc-h2"><a href="#6-agent">6. Agent 系统</a></li><li class="toc-h3"><a href="#61-agent">6.1 Agent 总览</a></li><li class="toc-h3"><a href="#62-round-engine">6.2 round-engine</a></li><li class="toc-h3"><a href="#63-peek-mind">6.3 peek-mind</a></li><li class="toc-h3"><a href="#64-intervene">6.4 intervene</a></li><li class="toc-h3"><a href="#65-relationship-summary">6.5 relationship-summary</a></li><li class="toc-h2"><a href="#7-llm">7. LLM 后端策略</a></li><li class="toc-h3"><a href="#71">7.1 凭证解析链</a></li><li class="toc-h3"><a href="#72">7.2 调用与降级</a></li><li class="toc-h3"><a href="#73-ip-rate-limit-input-sanitize">7.3 IP rate limit + input sanitize（生产防护）</a></li><li class="toc-h3"><a href="#73-prompt-caching">7.3 Prompt Caching</a></li><li class="toc-h3"><a href="#74-mock">7.4 Mock 兜底（默认路径）</a></li><li class="toc-h2"><a href="#8">8. 页面详解</a></li><li class="toc-h3"><a href="#81-apppagetsx">8.1 / 首页 (app/page.tsx)</a></li><li class="toc-h3"><a href="#82-setup-appsetuppagetsx">8.2 /setup (app/setup/page.tsx)</a></li><li class="toc-h3"><a href="#83-builder-appbuilderpagetsx">8.3 /builder (app/builder/page.tsx)</a></li><li class="toc-h3"><a href="#84-simulator-appsimulatorpagetsx">8.4 /simulator (app/simulator/page.tsx)</a></li><li class="toc-h3"><a href="#85-report-appreportpagetsx">8.5 /report (app/report/page.tsx)</a></li><li class="toc-h2"><a href="#9-ui">9. UI 组件</a></li><li class="toc-h3"><a href="#91-qavatar">9.1 QAvatar</a></li><li class="toc-h3"><a href="#92-sandboxhud">9.2 SandboxHud</a></li><li class="toc-h3"><a href="#93-rounddigest">9.3 RoundDigest</a></li><li class="toc-h3"><a href="#94-peekmindmodal-intervenemodal">9.4 PeekMindModal / InterveneModal</a></li><li class="toc-h2"><a href="#10">10. 设计原则（防小说化）</a></li><li class="toc-h3"><a href="#101">10.1 硬约束清单</a></li><li class="toc-h3"><a href="#102-5">10.2 5 轮对话节奏</a></li><li class="toc-h3"><a href="#103-cold-warm">10.3 cold / warm 分支</a></li><li class="toc-h2"><a href="#11">11. 手机适配规范</a></li><li class="toc-h3"><a href="#111-viewport-meta">11.1 viewport meta</a></li><li class="toc-h3"><a href="#112-globalscss">11.2 globals.css</a></li><li class="toc-h3"><a href="#113">11.3 触控热区</a></li><li class="toc-h3"><a href="#114-sticky-safe-area">11.4 sticky 底部 + safe area</a></li><li class="toc-h3"><a href="#115-lan">11.5 LAN 测试</a></li><li class="toc-h2"><a href="#12-api">12. API 详解</a></li><li class="toc-h3"><a href="#121-endpoint">12.1 endpoint</a></li><li class="toc-h3"><a href="#122-case-payload">12.2 各 case 的 payload</a></li><li class="toc-h3"><a href="#123-fallback-schema">12.3 fallback 链与 schema 验证</a></li><li class="toc-h3"><a href="#124-curl">12.4 调试用 curl 例子</a></li><li class="toc-h2"><a href="#13">13. 环境变量</a></li><li class="toc-h2"><a href="#14">14. 部署考虑</a></li><li class="toc-h3"><a href="#141-vercel">14.1 Vercel 部署</a></li><li class="toc-h3"><a href="#142">14.2 共享给他人测试</a></li><li class="toc-h3"><a href="#143-pwa">14.3 PWA / 添加到主屏幕</a></li><li class="toc-h3"><a href="#144-rate-limit">14.4 Rate limit 在多实例场景</a></li><li class="toc-h3"><a href="#143">14.3 成本估算</a></li><li class="toc-h2"><a href="#15">15. 已知限制 / 未来扩展点</a></li><li class="toc-h3"><a href="#151">15.1 当前的"妥协"</a></li><li class="toc-h3"><a href="#152">15.2 架构层面想做但没做</a></li><li class="toc-h3"><a href="#153">15.3 命盘恋语联动（产品矩阵层面）</a></li><li class="toc-h2"><a href="#16">16. 关键文件速查表</a></li><li class="toc-h2"><a href="#17">17. 调试技巧</a></li><li class="toc-h3"><a href="#171">17.1 看后端日志</a></li><li class="toc-h3"><a href="#172-store">17.2 看前端 store 状态</a></li><li class="toc-h3"><a href="#173-reset">17.3 reset 状态</a></li><li class="toc-h3"><a href="#174-mock">17.4 强制走 mock 测试</a></li><li class="toc-h3"><a href="#175-cli">17.5 强制走 CLI 测试</a></li><li class="toc-h2"><a href="#18">18. 测试用例（手动）</a></li><li class="toc-h3"><a href="#1_1">用例 1：完整跑通</a></li><li class="toc-h3"><a href="#210">用例 2：10 回合上限</a></li><li class="toc-h3"><a href="#3_1">用例 3：冷状态轨迹</a></li><li class="toc-h3"><a href="#4_1">用例 4：手机访问</a></li><li class="toc-h2"><a href="#19">19. 联系 / 维护</a></li><li class="toc-h2"><a href="#v1-v2-2026-05-12">附录：v1 → v2 变更日志（2026-05-12）</a></li></ul></nav>
+  <main class="content">
+    <h1 id="ai-love-lab">AI Love-Lab · 开发文档</h1>
+<blockquote>
+<p>当前实现状态的完整技术文档。给后续开发 / 维护 / 接手的人看。</p>
+<p>文档版本与代码状态对齐时间：2026-05-12（v2，含 rate-limit / sanitize / prefetch / save-image / PWA / 重玩 / 多维曲线）</p>
+<p>这份文档假设你已经能熟练读 TypeScript + Next.js + Tailwind，不解释通用概念。</p>
+</blockquote>
+<hr />
+<h2 id="0">0. 一句话定位</h2>
+<p><strong>让用户在 10 个回合的上帝视角沙盘里，看见自己心里那个人在 520 这一天会怎么和自己互动。不预测真实，不算命，是用户对关系的「试错预演」。</strong></p>
+<p>核心机制：</p>
+<ul>
+<li><strong>状态机驱动</strong>：4 维 0-100 关系状态（其中 2 维对用户隐藏），每回合 LLM 输出 delta 推进状态</li>
+<li><strong>3 Agent 编排</strong>：主推演 / 读心 / 用户介入，各管一段</li>
+<li><strong>回合制 + 翻页交互</strong>：≤10 回合，左右翻页推进，单卡承载 5 轮对话</li>
+<li><strong>可见 / 不可见的张力</strong>：你看得见自己的"亲密度感受"，看不见 ta 的"隐藏好感"——这是产品的核心钩子</li>
+</ul>
+<hr />
+<h2 id="1">1. 技术栈与依赖</h2>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;14.2.18&quot;</span><span class="p">,</span><span class="w">                    </span><span class="c1">// app router</span>
+<span class="w">  </span><span class="nt">&quot;react&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^18.3.1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;typescript&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^5.6.3&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;tailwindcss&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^3.4.15&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;framer-motion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^11.11.17&quot;</span><span class="p">,</span><span class="w">         </span><span class="c1">// 翻页动画 + 拖拽手势</span>
+<span class="w">  </span><span class="nt">&quot;zustand&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^5.0.1&quot;</span><span class="p">,</span><span class="w">                  </span><span class="c1">// 全局状态 + persist 到 localStorage</span>
+<span class="w">  </span><span class="nt">&quot;@anthropic-ai/sdk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^0.32.1&quot;</span><span class="p">,</span><span class="w">       </span><span class="c1">// LLM 调用（无 cache_control 类型，运行时支持）</span>
+<span class="w">  </span><span class="nt">&quot;lunar-javascript&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^1.7.7&quot;</span><span class="p">,</span><span class="w">         </span><span class="c1">// 八字日柱计算</span>
+<span class="w">  </span><span class="nt">&quot;html-to-image&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^1.11.13&quot;</span><span class="p">,</span><span class="w">          </span><span class="c1">// ⭐ share card 导出 PNG（含微信内置浏览器 fallback）</span>
+<span class="w">  </span><span class="nt">&quot;tailwind-merge&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^2.5.4&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;clsx&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^2.1.1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;recharts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^2.13.3&quot;</span><span class="w">                 </span><span class="c1">// 暂未使用（可移除）</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<blockquote>
+<p>⚠️ Anthropic SDK 0.32.1 的 <code>system</code> 字段类型不含 <code>cache_control</code>，运行时 Anthropic API 支持。代码里用 <code>as any</code> 绕过类型。如果升级 SDK 到 0.40+ 应该移除该类型 hack。</p>
+</blockquote>
+<hr />
+<h2 id="2">2. 目录结构</h2>
+<div class="code-block"><pre><span></span><code>ai-love-lab/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # 根布局 + viewport meta
+│   ├── globals.css               # 全局样式 / safe-area / iOS 字号修正
+│   ├── page.tsx                  # 首页（产品入口）
+│   ├── setup/page.tsx            # Step 1：基础信息（姓名 / 生日 / MBTI / ta 代称）
+│   ├── builder/page.tsx          # Step 2：12 题问卷养成 agent
+│   ├── simulator/page.tsx        # Step 3：关系沙盘（核心交互）
+│   ├── report/page.tsx           # 终局：主预言卡 + 折叠的分析
+│   └── api/
+│       └── agents/
+│           └── route.ts          # 唯一后端 endpoint，4 个 agent case 路由
+│
+├── lib/
+│   ├── types.ts                  # 所有共享类型
+│   ├── utils.ts                  # cn() / uid() 等小工具
+│   ├── bazi.ts                   # 八字日柱计算（独立于 LLM）
+│   ├── quiz.ts                   # 12 题问卷定义（builder 用）
+│   ├── auth.ts                   # Anthropic 凭证解析链
+│   ├── rate-limit.ts             # ⭐ 内存级 IP rate limit（30/min）
+│   ├── sanitize.ts               # ⭐ 用户输入清洗（长度 / 控制字符 / prompt injection）
+│   ├── engine.ts                 # 客户端 → /api/agents 的 4 个调用函数
+│   ├── store/
+│   │   └── simulation-store.ts   # Zustand 全局状态 + localStorage 持久化
+│   └── agents/                   # Agent prompt + 输入构造
+│       ├── round-engine.ts       # 主推演（一回合）
+│       ├── peek-mind.ts          # 读心术
+│       ├── intervene.ts          # 用户介入
+│       ├── relationship-summary.ts  # 终局报告
+│       └── mock.ts               # 智能 mock（无 API key 时的兜底）
+│
+├── components/
+│   ├── avatar/
+│   │   └── QAvatar.tsx           # q 版头像（hue + traits 标签）
+│   └── sandbox/
+│       ├── SandboxHud.tsx        # 沙盘顶部：双 agent 头像 + 亲密度条 + 双 mood 条
+│       ├── RoundDigest.tsx       # 单回合卡片（含「重玩本回合」按钮 + 介入态金边）
+│       ├── PeekMindModal.tsx     # 读心结果浮层（含「再读一次」按钮）
+│       └── InterveneModal.tsx    # 用户介入输入浮层（含 80 字上限）
+│
+├── public/                       # ⭐ PWA 静态资源
+│   ├── manifest.json             # PWA manifest（&quot;添加到主屏幕&quot;）
+│   └── icons/
+│       ├── icon-192.svg
+│       └── icon-512.svg
+│
+└── app/legal/
+    └── privacy/                  # 隐私声明（首页底部链接）
+</code></pre></div>
+
+<hr />
+<h2 id="3">3. 用户流程</h2>
+<div class="code-block"><pre><span></span><code>[首页 /]
+   ↓ 「开始捏 agent」
+[/setup]  Step 1
+   填：姓名、生日、MBTI（选填）、ta 的代称
+   写入 store.base + 调 store.initAgentsFromBase()
+   ↓ 「下一步」
+[/builder] Step 2
+   12 道问卷（关系阶段 / ta 印象 / 朋友圈反应 等）
+   每题答完：addQuizAnswer + pushUserTrait/pushTaTrait + shiftUserHue/shiftTaHue
+   答完 12 题点「开始推演」：initRelationship() 把 Q1 转成 RelationshipState 初始值
+   ↓
+[/simulator]  Step 3 · 关系沙盘
+   - 顶部：双 agent HUD + 亲密度条 + 当前时间
+   - 中部：单回合卡片（左右翻页）
+   - 底部：← 上一回合 · 当前页 · 推进时间/下一回合/看主预言卡 →
+   - 行动：「介入」「读心」分别消耗一个 callIntervene/callPeekMind
+   - 上限：10 回合
+   ↓ 「看主预言卡」（10 回合用完 或 用户主动跳出）
+[/report]
+   - 顶部大卡：主分享卡（title + prophecyLine + punchline，截图发朋友圈）
+   - 折叠：3 维投射分析、关键转折点、状态轨迹曲线
+   - 重玩：resetGame() 跳回 /setup
+</code></pre></div>
+
+<p>每一步都有路由守卫，缺前置数据自动 replace 到前一步。</p>
+<hr />
+<h2 id="4">4. 数据模型</h2>
+<p>所有类型定义在 <code>lib/types.ts</code>。</p>
+<h3 id="41">4.1 基础</h3>
+<div class="code-block"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">BaseProfile</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">       </span><span class="c1">// 用户姓名</span>
+<span class="w">  </span><span class="nx">birthday</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">   </span><span class="c1">// YYYY-MM-DD</span>
+<span class="w">  </span><span class="nx">mbti</span><span class="o">:</span><span class="w"> </span><span class="kt">MBTI</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">;</span><span class="w">    </span><span class="c1">// 16 类 + &quot;不知道&quot;</span>
+<span class="w">  </span><span class="nx">taName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">     </span><span class="c1">// ta 的代称</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">AgentForm</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">avatarSeed</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">   </span><span class="c1">// 派生 emoji 主体</span>
+<span class="w">  </span><span class="nx">traits</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span><span class="w">     </span><span class="c1">// 答题后累积的 trait chip</span>
+<span class="w">  </span><span class="nx">hue</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">          </span><span class="c1">// 0-360 情绪色</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">QuizAnswer</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">questionId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">optionKey</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;A&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;B&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;C&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;D&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">optionText</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">userTrait?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">taTrait?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="42">4.2 关系状态（核心新增）</h3>
+<div class="code-block"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">RelationshipState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">closeness</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">      </span><span class="c1">// 亲密度 0-100，对用户可见</span>
+<span class="w">  </span><span class="nx">userMood</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">       </span><span class="c1">// 用户此刻状态 0-100，对用户可见</span>
+<span class="w">  </span><span class="nx">taAffection</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">    </span><span class="c1">// ta 隐藏好感度 0-100，⚠️ 对用户完全隐藏</span>
+<span class="w">  </span><span class="nx">taMood</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">         </span><span class="c1">// ta 隐藏心情 0-100，⚠️ 对用户完全隐藏</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">StateDelta</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">closeness</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">      </span><span class="c1">// 本回合变化（-10 ~ +10）</span>
+<span class="w">  </span><span class="nx">userMood</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">taAffection</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">taMood</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">reason</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">         </span><span class="c1">// 一句话因果（≤30字）</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="43">4.3 回合</h3>
+<div class="code-block"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">RoundEvent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">round</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">            </span><span class="c1">// 1-based</span>
+<span class="w">  </span><span class="nx">time</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">             </span><span class="c1">// &quot;HH:MM&quot; 在 520 当天</span>
+<span class="w">  </span><span class="nx">eventText</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">        </span><span class="c1">// 30-60 字事件描述（带 1-2 个感官细节）</span>
+<span class="w">  </span><span class="nx">userAction</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">       </span><span class="c1">// ≤25 字第三人称动作摘要</span>
+<span class="w">  </span><span class="nx">taAction</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">         </span><span class="c1">// ≤25 字</span>
+<span class="w">  </span><span class="nx">beats</span><span class="o">:</span><span class="w"> </span><span class="kt">Beat</span><span class="p">[];</span><span class="w">            </span><span class="c1">// 完整对话（默认折叠在 UI 里）</span>
+<span class="w">  </span><span class="nx">delta</span><span class="o">:</span><span class="w"> </span><span class="kt">StateDelta</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">stateAfter</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipState</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">intervened?</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span><span class="w">     </span><span class="c1">// 是否由用户介入产生</span>
+<span class="p">}</span>
+
+<span class="kr">type</span><span class="w"> </span><span class="nx">BeatKind</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;message&quot;</span><span class="w">           </span><span class="c1">// 对话</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;typing_revoked&quot;</span><span class="w">    </span><span class="c1">// 打了又删</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;inner_flash&quot;</span><span class="p">;</span><span class="w">      </span><span class="c1">// 用户内心独白（ta 不允许）</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">Beat</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;user-agent&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;ta-agent&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;narration&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="kt">BeatKind</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">content</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<blockquote>
+<p><code>scene</code> 和 <code>time_skip</code> 这两个 BeatKind 是老数据兼容，<strong>新代码不要再产生</strong>。</p>
+</blockquote>
+<h3 id="44">4.4 终局</h3>
+<div class="code-block"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">ShareCard</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">         </span><span class="c1">// 4-8 字</span>
+<span class="w">  </span><span class="nx">prophecyLine</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">  </span><span class="c1">// 30-60 字，具体到分钟的画面感预言</span>
+<span class="w">  </span><span class="nx">punchline</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">     </span><span class="c1">// 30-60 字普适诗化金句，**不含 ta 真名**</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">RelationshipAnalysis</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">yourProjection</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">   </span><span class="c1">// 你对 ta 的投射（80-150 字）</span>
+<span class="w">  </span><span class="nx">yourPosition</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">     </span><span class="c1">// 你在亲密关系里的本能站位（含八字底色）</span>
+<span class="w">  </span><span class="nx">yourBlindSpot</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">    </span><span class="c1">// 你最容易自欺的盲点</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">KeyMoment</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">time</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">impact</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">        </span><span class="c1">// &quot;亲密+8 / 心情-2&quot;</span>
+<span class="w">  </span><span class="nx">note</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">FinalSummary</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">shareCard</span><span class="o">:</span><span class="w"> </span><span class="kt">ShareCard</span><span class="p">;</span><span class="w">            </span><span class="c1">// ⭐ 主分享卡，截图发朋友圈</span>
+<span class="w">  </span><span class="nx">analysis?</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipAnalysis</span><span class="p">;</span><span class="w"> </span><span class="c1">// 默认折叠</span>
+<span class="w">  </span><span class="nx">keyMoments?</span><span class="o">:</span><span class="w"> </span><span class="kt">KeyMoment</span><span class="p">[];</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="45-simulationstate">4.5 全局 SimulationState</h3>
+<div class="code-block"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">SimulationState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">base</span><span class="o">:</span><span class="w"> </span><span class="kt">BaseProfile</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">quizAnswers</span><span class="o">:</span><span class="w"> </span><span class="kt">QuizAnswer</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">userAgent</span><span class="o">:</span><span class="w"> </span><span class="kt">AgentForm</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">taAgent</span><span class="o">:</span><span class="w"> </span><span class="kt">AgentForm</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">rounds</span><span class="o">:</span><span class="w"> </span><span class="kt">RoundEvent</span><span class="p">[];</span><span class="w">           </span><span class="c1">// 回合历史</span>
+<span class="w">  </span><span class="nx">relationship</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipState</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">peeksRemaining</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">         </span><span class="c1">// 读心剩余次数，默认 3</span>
+<span class="w">  </span><span class="nx">finalSummary</span><span class="o">:</span><span class="w"> </span><span class="kt">FinalSummary</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">phase</span><span class="o">:</span><span class="w"> </span><span class="kt">SimPhase</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// 老字段兼容（不再主用）</span>
+<span class="w">  </span><span class="nx">scenes</span><span class="o">:</span><span class="w"> </span><span class="kt">PlayScene</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">prefetched</span><span class="o">:</span><span class="w"> </span><span class="kt">PlayScene</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">scenarioMode</span><span class="o">:</span><span class="w"> </span><span class="kt">ScenarioMode</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>存储：<code>zustand/persist</code> 到 <code>localStorage</code>，key 是 <code>ai-love-lab-sim</code>，<strong>version: 9</strong>。
+版本升级时所有旧数据被丢弃（store 自动 reset）。</p>
+<hr />
+<h2 id="5">5. 关系状态机详解</h2>
+<h3 id="51-4">5.1 4 维的含义</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>范围</th>
+<th>可见性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>closeness</code></td>
+<td>0-100</td>
+<td>✅ 可见</td>
+<td>双方亲密程度，越高越近</td>
+</tr>
+<tr>
+<td><code>userMood</code></td>
+<td>0-100</td>
+<td>✅ 可见</td>
+<td>用户此刻状态（松弛 vs 紧张）</td>
+</tr>
+<tr>
+<td><code>taAffection</code></td>
+<td>0-100</td>
+<td>❌ 隐藏</td>
+<td>ta 对用户的好感（产品核心张力）</td>
+</tr>
+<tr>
+<td><code>taMood</code></td>
+<td>0-100</td>
+<td>❌ 隐藏</td>
+<td>ta 此刻心情</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>「ta 的两个状态对用户隐藏」是产品的核心钩子。读心术（peek-mind）是唯一能"瞄一眼" ta 隐藏状态的方式。</p>
+</blockquote>
+<h3 id="52">5.2 初始值来源</h3>
+<p><code>initRelationship()</code> 在用户答完 12 题点「开始推演」时触发。根据 Q1（关系阶段）映射：</p>
+<table>
+<thead>
+<tr>
+<th>Q1 选项</th>
+<th>closeness</th>
+<th>userMood</th>
+<th>taAffection</th>
+<th>taMood</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A 破冰期</td>
+<td>22</td>
+<td>60</td>
+<td>18</td>
+<td>52</td>
+</tr>
+<tr>
+<td>B 高度暧昧</td>
+<td>58</td>
+<td>55</td>
+<td>62</td>
+<td>55</td>
+</tr>
+<tr>
+<td>C 冷战期</td>
+<td>38</td>
+<td>32</td>
+<td>50</td>
+<td>28</td>
+</tr>
+<tr>
+<td>D 断联期</td>
+<td>14</td>
+<td>42</td>
+<td>30</td>
+<td>45</td>
+</tr>
+<tr>
+<td>默认</td>
+<td>40</td>
+<td>50</td>
+<td>40</td>
+<td>50</td>
+</tr>
+</tbody>
+</table>
+<p>实现在 <code>lib/store/simulation-store.ts:deriveInitialRelationship</code>。</p>
+<h3 id="53-delta">5.3 delta 推进</h3>
+<p>每个回合 LLM 输出 <code>delta</code>，引擎调用 <code>applyDelta(d)</code>：</p>
+<div class="code-block"><pre><span></span><code><span class="nx">next</span><span class="p">.</span><span class="nx">closeness</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nx">clamp</span><span class="p">(</span><span class="nx">cur</span><span class="p">.</span><span class="nx">closeness</span><span class="w">   </span><span class="o">+</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">closeness</span><span class="p">,</span><span class="w">   </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">100</span><span class="p">);</span>
+<span class="nx">next</span><span class="p">.</span><span class="nx">userMood</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="nx">clamp</span><span class="p">(</span><span class="nx">cur</span><span class="p">.</span><span class="nx">userMood</span><span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">userMood</span><span class="p">,</span><span class="w">    </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">100</span><span class="p">);</span>
+<span class="nx">next</span><span class="p">.</span><span class="nx">taAffection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">clamp</span><span class="p">(</span><span class="nx">cur</span><span class="p">.</span><span class="nx">taAffection</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">taAffection</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">100</span><span class="p">);</span>
+<span class="nx">next</span><span class="p">.</span><span class="nx">taMood</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="nx">clamp</span><span class="p">(</span><span class="nx">cur</span><span class="p">.</span><span class="nx">taMood</span><span class="w">      </span><span class="o">+</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">taMood</span><span class="p">,</span><span class="w">      </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">100</span><span class="p">);</span>
+</code></pre></div>
+
+<p>delta 单维度允许范围 -10 ~ +10。前端在 <code>consumeRoundResult</code> 用 <code>clampDelta</code> 再次约束。</p>
+<h3 id="54-llm">5.4 状态如何影响 LLM 输出</h3>
+<p><code>buildRoundEngineInput</code> 把当前 4 维 state 全部传给 LLM。Prompt 里有明确规则：</p>
+<div class="code-block"><pre><span></span><code>- taAffection 高 (&gt;60)：ta 行为温度更高，主动一些
+- taAffection 中 (30-60)：ta 礼貌但克制
+- taAffection 低 (&lt;30)：ta 冷淡疏远
+
+- userMood 低：user 更敏感、更过度解读
+- userMood 高：user 更松弛、更敢主动
+</code></pre></div>
+
+<p>Mock 路径用更简化的 <code>isWarm = taAffection &gt;= 50</code> 二分法，选 cold 或 warm 分支。</p>
+<hr />
+<h2 id="6-agent">6. Agent 系统</h2>
+<p>4 个 Agent，每个职责清晰，互不污染。</p>
+<h3 id="61-agent">6.1 Agent 总览</h3>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>调用名</th>
+<th>触发</th>
+<th>输入 token 上限</th>
+<th>输出 token 上限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>round-engine</strong></td>
+<td><code>round-engine</code></td>
+<td>用户点「推进时间」</td>
+<td>~3K</td>
+<td>1200</td>
+</tr>
+<tr>
+<td><strong>peek-mind</strong></td>
+<td><code>peek-mind</code></td>
+<td>用户点「读心」</td>
+<td>~2K</td>
+<td>600</td>
+</tr>
+<tr>
+<td><strong>intervene</strong></td>
+<td><code>intervene</code></td>
+<td>用户介入后</td>
+<td>~3K</td>
+<td>1400</td>
+</tr>
+<tr>
+<td><strong>relationship-summary</strong></td>
+<td><code>relationship-summary</code></td>
+<td>看主预言卡</td>
+<td>~5K</td>
+<td>2000（用 sonnet）</td>
+</tr>
+</tbody>
+</table>
+<p>所有调用通过同一个 endpoint：<code>POST /api/agents</code>，body:</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;round-engine&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<h3 id="62-round-engine">6.2 round-engine</h3>
+<p><strong>职责</strong>：基于当前 state + 双方人设 + 历史回合，演算下一回合（事件 + 双方动作 + 5 轮对话 + state delta）。</p>
+<p><strong>输入</strong> (<code>RoundEngineInputArgs</code> in <code>lib/agents/round-engine.ts</code>):
+- <code>base</code> (BaseProfile)
+- <code>userAgent</code>, <code>taAgent</code> (含 traits)
+- <code>state</code> (4 维 RelationshipState)
+- <code>prevRounds</code> (最近 3 个回合，更早的截断)
+- <code>hint?</code> 可选用户提示
+- <code>bazi?</code> 八字底色（用户日柱 + 五行）</p>
+<p><strong>输出</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">time</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">            </span><span class="c1">// HH:MM，必须晚于上回合</span>
+<span class="w">  </span><span class="nx">eventText</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">       </span><span class="c1">// 30-60 字事件</span>
+<span class="w">  </span><span class="nx">userAction</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">taAction</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">beats</span><span class="o">:</span><span class="w"> </span><span class="kt">Beat</span><span class="p">[];</span><span class="w">           </span><span class="c1">// ⭐ 9-12 个，要构成 5 轮 user↔ta 来回</span>
+<span class="w">  </span><span class="nx">delta</span><span class="o">:</span><span class="w"> </span><span class="kt">StateDelta</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>硬约束</strong>（写在 system prompt 里）：</p>
+<div class="code-block"><pre><span></span><code>❌ 禁旁白叙事（&quot;窗外有风&quot;这种）
+❌ 禁 takeaway / 文评 / 总结
+❌ 禁硬塞&quot;心动瞬间&quot;
+❌ 禁双方节奏过于协调
+❌ ta 不能输出 inner_flash（ta 是黑盒）
+✅ user 可以 1-3 个 inner_flash
+✅ 一回合 9-12 个 beat，user/ta message 各 ≥ 4，构成 5 轮真实来回
+✅ ta 可以个别&quot;已读不回&quot;，但不是整段沉默
+</code></pre></div>
+
+<h3 id="63-peek-mind">6.3 peek-mind</h3>
+<p><strong>职责</strong>：用户消耗一次读心，揭示 ta 此刻真实内心。</p>
+<p><strong>输入</strong>：base + userAgent + taAgent + state + prevRounds（含隐藏 taAffection / taMood）</p>
+<p><strong>输出</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">taMoodLabel</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">     </span><span class="c1">// 2-8 字情绪短语</span>
+<span class="w">  </span><span class="nx">taAttitude</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">      </span><span class="c1">// 一句话 ta 对用户态度，≤40 字</span>
+<span class="w">  </span><span class="nx">innerMonologue</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">  </span><span class="c1">// ta 第一人称内心独白，1-2 句，≤60 字</span>
+<span class="w">  </span><span class="nx">userBlindSpot</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">   </span><span class="c1">// 用户的盲点（这是产品魂级别的内容），≤80 字</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>关键设计</strong>：</p>
+<ul>
+<li>独立 LLM 调用，<strong>不写入主推演 context</strong>——避免污染后续 round-engine</li>
+<li>不解释 taAffection 数字</li>
+<li>userBlindSpot 必须是"对用户自己的发现"，不是"对 ta 的判断"</li>
+<li>用户消耗一次 <code>peeksRemaining</code>（默认 3）</li>
+</ul>
+<h3 id="64-intervene">6.4 intervene</h3>
+<p><strong>职责</strong>：用户接管自己的 agent 做一个具体动作，AI 演 ta 的反应。</p>
+<p><strong>输入</strong>：
+- base / userAgent / taAgent / state / prevRounds
+- <code>userInputType</code>: <code>"message" | "post" | "wait"</code>
+- <code>userInputContent</code>: 用户原文</p>
+<p><strong>输出</strong>：跟 round-engine 同 schema（time / eventText / userAction / taAction / beats / delta）</p>
+<p><strong>关键差别 vs round-engine</strong>：</p>
+<ul>
+<li><code>time</code> 只 +5~30 分钟（用户在做事，不是大跳跃）</li>
+<li><code>eventText</code> 简短（≤20 字），更像"环境锚"</li>
+<li><code>userAction</code> 必须忠实呈现用户的输入</li>
+<li>ta 的反应必须基于用户的具体动作 + 当前隐藏状态</li>
+</ul>
+<h3 id="65-relationship-summary">6.5 relationship-summary</h3>
+<p><strong>职责</strong>：跑完所有回合后生成主预言卡 + 3 维投射分析 + 关键转折点。</p>
+<p><strong>输入</strong>：base + userAgent + taAgent + rounds（全部）+ finalState + bazi</p>
+<p><strong>输出</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">shareCard</span><span class="o">:</span><span class="w"> </span><span class="kt">ShareCard</span><span class="p">,</span><span class="w">                </span><span class="c1">// ⭐ 主分享卡（合并主预言 + 金句）</span>
+<span class="w">  </span><span class="nx">analysis</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipAnalysis</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">keyMoments</span><span class="o">:</span><span class="w"> </span><span class="kt">KeyMoment</span><span class="p">[]</span><span class="w">              </span><span class="c1">// 3-5 个，按 delta 影响排序</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>关键铁律</strong>（写在 prompt 里）：</p>
+<ul>
+<li>❌ punchline 绝对不含 ta 真名（用"那个人"/"对面那盏灯"代词）</li>
+<li>❌ punchline 不暴露具体场景细节</li>
+<li>✅ punchline 是普适诗化金句，适合 4-6 寸竖屏截图</li>
+<li>✅ analysis 三段全部关于"用户自己"，不是关于 ta</li>
+<li>✅ yourPosition 必须引用八字日柱 / 五行 / 配偶宫</li>
+</ul>
+<blockquote>
+<p>用 sonnet 而非 haiku 因为终局质量直接影响分享意愿，值得多花一点 token。</p>
+</blockquote>
+<hr />
+<h2 id="7-llm">7. LLM 后端策略</h2>
+<p>详见 <code>app/api/agents/route.ts</code> + <code>lib/auth.ts</code>。</p>
+<h3 id="71">7.1 凭证解析链</h3>
+<p><code>lib/auth.ts:getAnthropicCredential()</code> 按优先级查找：</p>
+<ol>
+<li><code>process.env.ANTHROPIC_API_KEY</code> （<code>sk-ant-api03-...</code>）→ 标准 API key，最佳路径</li>
+<li><code>process.env.ANTHROPIC_AUTH_TOKEN</code> （<code>sk-ant-oat01-...</code>）→ OAuth token</li>
+<li>macOS keychain 读 <code>Claude Code-credentials</code> → 借用用户 Claude Code 订阅的 OAuth token</li>
+</ol>
+<p>返回 <code>{ apiKey, authToken, betaHeader, source }</code>。</p>
+<h3 id="72">7.2 调用与降级</h3>
+<p><code>route.ts:callLLM</code> 的逻辑：</p>
+<div class="code-block"><pre><span></span><code>1. getClient() 拿凭证
+2. 如果有 client：
+   a. SDK 调用 client.messages.create({ system: [{type:&quot;text&quot;, text, cache_control:{type:&quot;ephemeral&quot;}}] })
+   b. 如果成功：返回输出
+   c. 如果 403 forbidden &amp;&amp; 是 OAuth 路径：
+      - 标记 sdkOauthBanned = true（本进程不再尝试）
+      - 抛错让 safeCallLLM 返回 null → 上层走 mock
+   d. 其他错误：抛出
+3. 无 client：抛 NO_LLM_BACKEND → safeCallLLM 返回 null → mock
+4. safeCallLLM 包装：任何错误返回 null
+5. 上层用 tryParseJson 解析，schema 失败或 null → 返回对应 mock_fallback
+</code></pre></div>
+
+<blockquote>
+<p>⚠️ <strong>OAuth 已被 Anthropic 永久封禁</strong>。2026.5.12 起，从 macOS keychain 读到的 OAuth token 用直连 API 会 403。代码会自动检测并降级。这条路径只能用 mock 兜底。</p>
+<p>⚠️ <strong>CLI fallback 已彻底移除</strong>。之前的 <code>lib/cli-llm.ts</code> + <code>ALLOW_CLI_FALLBACK</code> 因 60-100s/回合的延迟问题，体验比 mock 差很多，已删。</p>
+</blockquote>
+<h3 id="73-ip-rate-limit-input-sanitize">7.3 IP rate limit + input sanitize（生产防护）</h3>
+<h4 id="rate-limit-librate-limitts">Rate limit · <code>lib/rate-limit.ts</code></h4>
+<p>内存级（单实例 / 进程内有效，重启失效）。<code>POST /api/agents</code> 入口处对每个 IP：</p>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">getClientIp</span><span class="p">(</span><span class="nx">req</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">rl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rateLimit</span><span class="p">(</span><span class="sb">`agents:</span><span class="si">${</span><span class="nx">ip</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">windowMs</span><span class="o">:</span><span class="w"> </span><span class="kt">60_000</span><span class="p">,</span><span class="w"> </span><span class="nx">max</span><span class="o">:</span><span class="w"> </span><span class="kt">30</span><span class="w"> </span><span class="p">});</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">rl</span><span class="p">.</span><span class="nx">allowed</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mf">429</span><span class="w"> </span><span class="kd">with</span><span class="w"> </span><span class="nx">Retry</span><span class="o">-</span><span class="nx">After</span><span class="w"> </span><span class="nx">header</span><span class="p">;</span>
+</code></pre></div>
+
+<p>30/min 够一个完整推演（14 次调用）+ 一些容错，能挡爬虫。</p>
+<p>⚠️ 生产高流量请换 <strong>Upstash Redis</strong> / <strong>Vercel KV</strong> 跨实例共享。</p>
+<h4 id="input-sanitize-libsanitizets">Input sanitize · <code>lib/sanitize.ts</code></h4>
+<p>intervene 是唯一接收用户自由文本的入口。两层清洗：</p>
+<p><strong>客户端</strong>（InterveneModal）：
+- textarea <code>maxLength={80}</code>
+- onChange 里 slice 强约束
+- 实时字数计数 <code>n / 80</code></p>
+<p><strong>服务端</strong>（route.ts intervene case）：</p>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">strictSanitize</span><span class="p">(</span><span class="nx">payload</span><span class="p">.</span><span class="nx">userInputContent</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">maxLen</span><span class="o">:</span><span class="w"> </span><span class="kt">80</span><span class="w"> </span><span class="p">});</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">r</span><span class="p">.</span><span class="nx">ok</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mf">400</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">error</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;invalid_input&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">r.reason</span><span class="w"> </span><span class="p">};</span>
+<span class="nx">payload</span><span class="p">.</span><span class="nx">userInputContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">text</span><span class="p">;</span>
+</code></pre></div>
+
+<p><code>sanitizeUserInput</code> / <code>strictSanitize</code> 做：
+1. 长度截断（默认 80）
+2. 去除控制字符（<code>\x00-\x08, \x0B-\x1F, \x7F</code>）
+3. Prompt injection 检测（<code>ignore previous</code> / <code>system:</code> / <code>you are now</code> / DAN / 标签注入等），命中后返回 <code>ok:false</code>
+4. 简单脏字过滤（<code>HARD_BLOCK</code> 数组，可按需扩展）</p>
+<blockquote>
+<p>生产建议加：（1）二次过滤接 Anthropic moderation 或自建模型；（2）记录恶意输入到 audit log。</p>
+</blockquote>
+<h3 id="73-prompt-caching">7.3 Prompt Caching</h3>
+<p>每次 SDK 调用都把 system prompt 标记 <code>cache_control: ephemeral</code>：</p>
+<div class="code-block"><pre><span></span><code><span class="nx">system</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">system</span><span class="p">,</span><span class="w"> </span><span class="nx">cache_control</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;ephemeral&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">any</span>
+<span class="p">]</span>
+</code></pre></div>
+
+<ul>
+<li>第一次调用：full input token 价</li>
+<li>5 分钟内同 system 再调用：input token 价 ×0.1，延迟下降 30-50%</li>
+<li>SDK 0.32.1 的类型不含 cache_control，运行时支持，用 <code>as any</code> 绕过</li>
+</ul>
+<h3 id="74-mock">7.4 Mock 兜底（默认路径）</h3>
+<p><strong>当前部署默认走 mock</strong>，因为：
+- API key 没配 → 没有真 LLM 通道
+- OAuth 被封 → SDK 直连不通
+- CLI fallback 太慢（70-100s/回合），默认 disable</p>
+<p><code>lib/agents/mock.ts</code> 提供智能 mock：</p>
+<ul>
+<li>10 个回合模板 × cold/warm 双分支 × delta jitter = ~20 个差异化产物</li>
+<li>名字占位符 <code>{U}</code> <code>{T}</code> 自动替换为真实姓名</li>
+<li><code>[COLD]xxx[WARM]yyy</code> 文本根据 <code>taAffection &gt;= 50</code> 自动选择支路</li>
+<li>读心按 taAffection 4 段分级（≤25 / 26-50 / 51-75 / &gt;75），每段独立模板</li>
+<li>介入根据 type (message/post/wait) + warm/cold 排列组合</li>
+<li>终局根据 closeness tone（warm/neutral/cold）选 share card 调子</li>
+</ul>
+<p><strong>响应时间</strong>：~25ms（基本即时）。</p>
+<p><strong>局限</strong>：
+- 10 个回合模板，超过 10 回合后会循环（但 round cap 是 10，正好用完）
+- 内容深度不如真 LLM，但已经"看起来像真的"
+- 共享对话池子有限，多次玩同一用户重复度高</p>
+<hr />
+<h2 id="8">8. 页面详解</h2>
+<h3 id="81-apppagetsx">8.1 <code>/</code> 首页 (<code>app/page.tsx</code>)</h3>
+<p>纯静态着陆页。视觉：暗夜紫底 + 玫瑰金标题 + 50 个随机粒子背景。
+CTA：「开始捏 agent →」跳 <code>/setup</code>。
+3 个特性卡片（基础信息 / 12 题养成 / 沙盘推演）。</p>
+<h3 id="82-setup-appsetuppagetsx">8.2 <code>/setup</code> (<code>app/setup/page.tsx</code>)</h3>
+<p>4 个 Field：
+1. 姓名（必填）
+2. 生日（必填，date input，用于八字计算）
+3. MBTI（选填，select）
+4. ta 的代称（必填）</p>
+<p>按钮 disable 直到必填项满足。点「下一步」调 <code>setBase</code> 然后 <code>router.push("/builder")</code>。</p>
+<p>不在这里 init agents——交给 builder。</p>
+<h3 id="83-builder-appbuilderpagetsx">8.3 <code>/builder</code> (<code>app/builder/page.tsx</code>)</h3>
+<p>主交互：</p>
+<ul>
+<li>顶部 sticky header：进度条 + Step 2 / 3 + N/12</li>
+<li>中部：双 q 版头像（默认 110px，每答一题相应 hue 微调 + traits chip 累积）</li>
+<li>下部：当前题（带 framer-motion 切题动画）+ 4 个选项按钮</li>
+</ul>
+<p>每题选项 metadata（在 <code>lib/quiz.ts</code>）含可选的 <code>userTrait</code> 和 <code>taTrait</code>，答题时 <code>pushUserTrait</code> / <code>pushTaTrait</code> 加入 agent。</p>
+<p>12 题答完显示「开始推演 →」，点击：
+1. 调 <code>initRelationship()</code> 把 Q1 转成初始 RelationshipState
+2. <code>setPhase("play")</code>
+3. <code>router.push("/simulator")</code></p>
+<h3 id="84-simulator-appsimulatorpagetsx">8.4 <code>/simulator</code> (<code>app/simulator/page.tsx</code>)</h3>
+<p>⭐ <strong>核心页面</strong>。包含<strong>翻页 / 重玩 / prefetch / 介入 / 读心</strong> 5 套交互。布局自上而下：</p>
+<div class="code-block"><pre><span></span><code>┌────────────────────────────────┐
+│ Header: ← / Step 3/3 / N/10    │ sticky
+├────────────────────────────────┤
+│ SandboxHud                     │
+│  双 agent 头像 + 亲密度条 + mood│
+├────────────────────────────────┤
+│ 进度指示器 (10 dots)            │
+├────────────────────────────────┤
+│                                │
+│   单回合卡片                   │ ← 可左右滑动
+│   (RoundDigest)                │ ← framer-motion drag=&quot;x&quot;
+│                                │
+├────────────────────────────────┤
+│ ← 上一回合 / 回合 X/Y / 推进 → │
+│       介入  ·  读心 · N         │
+└────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>核心状态</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">currentPage</span><span class="p">,</span><span class="w"> </span><span class="nx">setCurrentPage</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">slideDir</span><span class="p">,</span><span class="w"> </span><span class="nx">setSlideDir</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="o">&lt;</span><span class="mf">1</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">1</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">phase</span><span class="p">,</span><span class="w"> </span><span class="nx">setPhase</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="o">&lt;</span><span class="nx">LocalPhase</span><span class="o">&gt;</span><span class="p">(</span><span class="s2">&quot;idle&quot;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">peekResult</span><span class="p">,</span><span class="w"> </span><span class="nx">setPeekResult</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="o">&lt;</span><span class="nx">PeekMindResult</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">showIntervene</span><span class="p">,</span><span class="w"> </span><span class="nx">setShowIntervene</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">MAX_ROUNDS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">isFirstPage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">currentPage</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">isLastPage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">currentPage</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="nx">rounds</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">atRoundCap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rounds</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="nx">MAX_ROUNDS</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>翻页交互</strong>：</p>
+<ul>
+<li><strong>手势</strong>：framer-motion <code>drag="x"</code> + <code>onDragEnd</code>：偏移 &gt; 60px 或速度 &gt; 400px/s 触发翻页</li>
+<li><strong>按钮</strong>：底部 ← / → 按钮 + 上方点击点</li>
+<li><strong>键盘</strong>：（暂未实现，可加 keyboard listener for arrow keys）</li>
+</ul>
+<p><strong>「下一回合」按钮的 contextual label</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">nextLabel</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="o">!</span><span class="nx">isLastPage</span><span class="w">     </span><span class="o">?</span><span class="w"> </span><span class="s2">&quot;下一回合&quot;</span><span class="w">        </span><span class="c1">// 中间页：纯翻页</span>
+<span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="nx">atRoundCap</span><span class="w">    </span><span class="o">?</span><span class="w"> </span><span class="s2">&quot;看主预言卡&quot;</span><span class="w">      </span><span class="c1">// 10/10：跳 report</span>
+<span class="w">  </span><span class="o">:</span><span class="w">                 </span><span class="s2">&quot;推进时间&quot;</span><span class="p">;</span><span class="w">       </span><span class="c1">// 最后页且未满：触发 advance</span>
+</code></pre></div>
+
+<p><strong>新回合产生后</strong>：<code>consumeRoundResult</code> 末尾自动 <code>setCurrentPage(rounds.length - 1)</code> 翻到新页。</p>
+<p><strong>重玩本回合</strong>：</p>
+<p><code>RoundDigest</code> 在 props 含 <code>onReroll</code> 时显示「🔄 不满意？重玩本回合」按钮。simulator 只在用户处于<strong>最后一页 + 不 busy + rounds &gt; 0</strong> 时传入回调。</p>
+<p>流程：
+1. <code>popLastRound()</code> (store) 撤销最后一回合，反向应用 delta 回到上一回合的 stateAfter
+2. <code>invalidatePrefetch()</code> 丢弃缓存（state 变了）
+3. <code>setCurrentPage(p - 1)</code> 翻回上一页（视觉等待）
+4. 短 toast「已撤销，重新推算中…」+ 400ms 后 <code>advance()</code> 重抽</p>
+<p><strong>prefetch · 用户读当前页时偷偷跑下一回合</strong>：</p>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">prefetchRef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useRef</span><span class="o">&lt;</span><span class="p">{</span><span class="w"> </span><span class="nx">result</span><span class="o">:</span><span class="w"> </span><span class="kt">RoundEngineResult</span><span class="p">;</span><span class="w"> </span><span class="nx">basedOn</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+
+<span class="nx">useEffect</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// 翻到最后一页 + 还能推进 + 没在 busy + 没已缓存 → 后台跑</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">isLastPage</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">rounds</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nx">MAX_ROUNDS</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">busy</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">prefetchRef</span><span class="p">.</span><span class="nx">current</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="ow">void</span><span class="w"> </span><span class="nx">prefetchNextRound</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">},</span><span class="w"> </span><span class="p">[</span><span class="nx">currentPage</span><span class="p">,</span><span class="w"> </span><span class="nx">rounds</span><span class="p">.</span><span class="nx">length</span><span class="p">,</span><span class="w"> </span><span class="nx">phase</span><span class="p">]);</span>
+</code></pre></div>
+
+<p><code>prefetchNextRound</code> 调 <code>callRoundEngine</code> 拿结果后再校验 <code>useSimStore.getState().rounds.length === basedOn</code>——如果中间用户介入 / 撤销了，丢弃结果（state 不再匹配）。</p>
+<p><code>advance()</code> 优先用 <code>prefetchRef.current</code>（瞬时切换），否则 fetch。</p>
+<p><code>invalidatePrefetch()</code> 显式调用于介入 / 重玩前。</p>
+<p><strong>真 LLM 场景下：</strong> 用户读当前回合的 5-15 秒里，下一回合已经准备好。翻到下一页时几乎瞬时。Mock 模式下 25ms 本来就快，prefetch 是锦上添花。</p>
+<h3 id="85-report-appreportpagetsx">8.5 <code>/report</code> (<code>app/report/page.tsx</code>)</h3>
+<ul>
+<li>顶部：<strong>Share Card 主分享卡</strong>（大尺寸渐变背景，title + prophecyLine + punchline 居中），用 <code>useRef</code> 标记 DOM，用于截图导出</li>
+<li>「📸 保存为图片」<strong>真实下载</strong>（<code>html-to-image</code> 动态 import + 微信内置浏览器兜底用全屏 img 让用户长按保存）</li>
+<li>「复制文案」按钮（<code>navigator.clipboard.writeText</code>）</li>
+<li>下方折叠区：</li>
+<li>「写给你的 3 张镜子」→ 展开看 yourProjection / yourPosition / yourBlindSpot</li>
+<li>「关键转折点」→ KeyMoment 列表（按 |Δcloseness|+|ΔuserMood|+|ΔtaAffection| 排序取前 5）</li>
+<li>「N 个回合的状态轨迹」→ <strong>3 维 SVG sparkline</strong>：<ul>
+<li>玫瑰金实线 = closeness（亲密度）</li>
+<li>紫色虚线 = userMood（你的状态）</li>
+<li>红色实线 = taAffection（<strong>ta 的真实好感 · 终局揭晓</strong>）</li>
+<li>这一刻是产品最戳的部分：用户回顾才发现 ta 这一整天在他/她看不见的地方变了这么多</li>
+</ul>
+</li>
+<li>底部：「换一对 agent 再来一次」（resetGame + 跳 /setup）</li>
+</ul>
+<h4 id="share-card">Share Card 导出图片细节</h4>
+<div class="code-block"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">toPng</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="k">import</span><span class="p">(</span><span class="s2">&quot;html-to-image&quot;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">dataUrl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">toPng</span><span class="p">(</span><span class="nx">shareCardRef</span><span class="p">.</span><span class="nx">current</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">cacheBust</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">pixelRatio</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">backgroundColor</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;#1a1a2e&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">style</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">transform</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="c1">// 临时去掉 motion transform 防裁切</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>微信兜底逻辑：检测 <code>navigator.userAgent.includes("micromessenger")</code>，是的话生成一个全屏 img 让用户长按保存（微信内置浏览器不能直接触发下载）。</p>
+<hr />
+<h2 id="9-ui">9. UI 组件</h2>
+<h3 id="91-qavatar">9.1 <code>QAvatar</code></h3>
+<p><code>components/avatar/QAvatar.tsx</code>。q 版头像：</p>
+<ul>
+<li>接收 <code>name</code>, <code>hue</code>（0-360），<code>traits[]</code>, <code>side</code>（"left" | "right"）, <code>size</code>, <code>highlight?</code></li>
+<li>用 hue 计算 css <code>filter: hue-rotate(...)</code></li>
+<li>显示用户姓名 + 累积的 traits chip</li>
+<li>头部偏左/右取决于 side</li>
+<li>highlight=true 时有 glow 动画</li>
+</ul>
+<h3 id="92-sandboxhud">9.2 <code>SandboxHud</code></h3>
+<p><code>components/sandbox/SandboxHud.tsx</code>。沙盘顶部 HUD：</p>
+<ul>
+<li>中央时间锚（"5/20 当前 · HH:MM"）</li>
+<li>3 列布局：用户卡 / 亲密度条 / ta 卡</li>
+<li>用户卡：QAvatar（54px）+ "状态" mood 条（可见，跟 userMood 动）</li>
+<li>中间：亲密度条（spring 动画跟 closeness）+ 数字 "N/100"</li>
+<li>ta 卡：QAvatar + "心情" mood 条（<strong>隐藏，显示 <code>? ? ? ? ?</code></strong>）</li>
+</ul>
+<h3 id="93-rounddigest">9.3 <code>RoundDigest</code></h3>
+<p><code>components/sandbox/RoundDigest.tsx</code>。单回合压缩卡：</p>
+<ul>
+<li>头部：「Round N · HH:MM」+ 「✎ 你介入」标识（如果 intervened）</li>
+<li>事件文本（font-serif，~13.5px）</li>
+<li>双方动作摘要（"你→" / "ta→"）</li>
+<li>delta 标签（亲密 +N / 你的状态 +M + 一句话原因）</li>
+<li><strong>折叠按钮「▾ 展开对话（N）」</strong>——点开看完整 beats（默认根据 defaultOpen prop）</li>
+</ul>
+<p>beat 渲染分支：
+- <code>message</code>：用户右气泡（蓝色 bubble-user），ta 左气泡（米色 bubble-crush）
+- <code>typing_revoked</code>：撤回样式（删除线 + 灰 + "XX 撤回了一条"）
+- <code>inner_flash</code>：右对齐斜体灰字（"※ ..."）</p>
+<h3 id="94-peekmindmodal-intervenemodal">9.4 <code>PeekMindModal</code> / <code>InterveneModal</code></h3>
+<p><code>components/sandbox/PeekMindModal.tsx</code> / <code>InterveneModal.tsx</code>。</p>
+<p>都是底部弹起浮层，<code>max-w-md</code>，含 safe-area inset。</p>
+<ul>
+<li><strong>PeekMindModal</strong>：4 个分区展示 taMoodLabel / taAttitude / innerMonologue / userBlindSpot + 「回到沙盘」按钮</li>
+<li><strong>InterveneModal</strong>：3 个 action type 选项卡（私聊/朋友圈/不动）+ textarea + 「发出 →」</li>
+</ul>
+<hr />
+<h2 id="10">10. 设计原则（防小说化）</h2>
+<p>这套产品最容易掉进的坑：LLM 输出像微小说，不像真聊天。所有 prompt 都有强约束防止。</p>
+<h3 id="101">10.1 硬约束清单</h3>
+<div class="code-block"><pre><span></span><code>❌ 不要旁白叙事（&quot;窗外有风&quot; / &quot;雨敲玻璃&quot; 这种）
+❌ 不要 takeaway / 文评 / 总结
+❌ 不要让 user / ta 节奏过于协调
+❌ ta 不能输出 inner_flash（黑盒原则）
+❌ 不要硬塞&quot;心动瞬间&quot;（剧作公式化）
+❌ punchline 不含 ta 真名（普适化）
+✅ 用户能 1-3 个 inner_flash 但克制
+✅ 一回合 9-12 beat，5 轮真实来回
+✅ ta 可以&quot;已读不回&quot;但不是整段沉默
+✅ 双方话符合 traits + 隐藏状态
+✅ delta reason 是因果，不是文评
+</code></pre></div>
+
+<h3 id="102-5">10.2 5 轮对话节奏</h3>
+<p>每个回合应该长这样：</p>
+<div class="code-block"><pre><span></span><code>1. user inner_flash（情境感受）
+2. user message ↓ ⎫
+3. ta message   ↑ ⎬ turn 1
+4. user message ↓ ⎫
+5. ta message   ↑ ⎬ turn 2
+6. user message ↓ ⎫
+7. ta typing_revoked  ⎬ turn 3（带犹豫细节）
+8. ta message ↑
+9. user message ↓ ⎫
+10. ta message ↑ ⎬ turn 4
+11. user message ↓ ⎫
+12. ta message ↑ ⎬ turn 5
+13. user inner_flash（结尾沉淀）
+</code></pre></div>
+
+<p>mock 模板每个都按这个结构。LLM prompt 也明确要求。</p>
+<h3 id="103-cold-warm">10.3 cold / warm 分支</h3>
+<p><code>taAffection &gt;= 50</code> 走 warm，否则走 cold。</p>
+<p>差别在 ta 的 message 内容上：</p>
+<div class="code-block"><pre><span></span><code>{ role: &quot;ta-agent&quot;, kind: &quot;message&quot;,
+  content: &quot;[COLD]嗯。[WARM]嗯，你也是？&quot; }
+</code></pre></div>
+
+<p>替换函数 <code>fillTemplate(s, userName, taName, isWarm)</code>：
+- <code>[COLD]xxx[WARM]yyy</code> → 根据 isWarm 选一边
+- <code>{U}</code> <code>{T}</code> → 用户和 ta 的真实姓名</p>
+<hr />
+<h2 id="11">11. 手机适配规范</h2>
+<h3 id="111-viewport-meta">11.1 viewport meta</h3>
+<p><code>app/layout.tsx</code>：</p>
+<div class="code-block"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">viewport</span><span class="o">:</span><span class="w"> </span><span class="kt">Viewport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;device-width&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">initialScale</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">maximumScale</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">userScalable</span><span class="o">:</span><span class="w"> </span><span class="kt">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">themeColor</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;#1a1a2e&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">viewportFit</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;cover&quot;</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<h3 id="112-globalscss">11.2 globals.css</h3>
+<ul>
+<li><code>body { touch-action: manipulation }</code> 禁双击放大</li>
+<li><code>-webkit-tap-highlight-color: transparent</code> 关掉点击高亮</li>
+<li><code>input, textarea, select { font-size: 16px }</code> 防 iOS 自动放大</li>
+<li><code>body { padding-bottom: env(safe-area-inset-bottom) }</code> 留底部安全区</li>
+</ul>
+<h3 id="113">11.3 触控热区</h3>
+<p>所有 button 至少 44pt 高（py-3 = 12+12+24line-height ≈ 48pt）。
+带 <code>active:scale-95</code> 提供触控反馈动画。</p>
+<h3 id="114-sticky-safe-area">11.4 sticky 底部 + safe area</h3>
+<p><code>app/simulator/page.tsx</code> 底部行动栏：</p>
+<div class="code-block"><pre><span></span><code><span class="p">&lt;</span><span class="nt">div</span>
+<span class="w">  </span><span class="na">className</span><span class="o">=</span><span class="s">&quot;sticky bottom-0 glass border-t...&quot;</span>
+<span class="w">  </span><span class="na">style</span><span class="o">=</span><span class="p">{{</span><span class="w"> </span><span class="nx">paddingBottom</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;calc(env(safe-area-inset-bottom) + 12px)&quot;</span><span class="w"> </span><span class="p">}}</span>
+<span class="p">&gt;</span>
+</code></pre></div>
+
+<p>避免 iPhone Home Indicator 遮挡。</p>
+<h3 id="115-lan">11.5 LAN 测试</h3>
+<p><code>package.json:scripts.dev = "next dev --hostname 0.0.0.0"</code>。</p>
+<p>手机和 Mac 在同一 WiFi，访问 <code>http://&lt;mac-lan-ip&gt;:3000</code>。</p>
+<hr />
+<h2 id="12-api">12. API 详解</h2>
+<h3 id="121-endpoint">12.1 endpoint</h3>
+<p><code>POST /api/agents</code> (<code>app/api/agents/route.ts</code>)</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;round-engine&quot;</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">&quot;peek-mind&quot;</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">&quot;intervene&quot;</span><span class="w"> </span><span class="err">|</span><span class="w"> </span><span class="s2">&quot;relationship-summary&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="122-case-payload">12.2 各 case 的 payload</h3>
+<h4 id="round-engine">round-engine</h4>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">base</span><span class="o">:</span><span class="w"> </span><span class="kt">BaseProfile</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">userAgent</span><span class="o">:</span><span class="w"> </span><span class="kt">AgentForm</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">taAgent</span><span class="o">:</span><span class="w"> </span><span class="kt">AgentForm</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipState</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">prevRounds</span><span class="o">:</span><span class="w"> </span><span class="kt">RoundEvent</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">hint?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">images?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w">      </span><span class="c1">// data: URL base64</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="peek-mind">peek-mind</h4>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">base</span><span class="p">,</span><span class="w"> </span><span class="nx">userAgent</span><span class="p">,</span><span class="w"> </span><span class="nx">taAgent</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">,</span><span class="w"> </span><span class="nx">prevRounds</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="intervene">intervene</h4>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">base</span><span class="p">,</span><span class="w"> </span><span class="nx">userAgent</span><span class="p">,</span><span class="w"> </span><span class="nx">taAgent</span><span class="p">,</span><span class="w"> </span><span class="nx">state</span><span class="p">,</span><span class="w"> </span><span class="nx">prevRounds</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">userInputType</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;message&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;post&quot;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s2">&quot;wait&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">userInputContent</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="relationship-summary">relationship-summary</h4>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">base</span><span class="p">,</span><span class="w"> </span><span class="nx">userAgent</span><span class="p">,</span><span class="w"> </span><span class="nx">taAgent</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">rounds</span><span class="o">:</span><span class="w"> </span><span class="kt">RoundEvent</span><span class="p">[],</span><span class="w">         </span><span class="c1">// 全部</span>
+<span class="w">  </span><span class="nx">finalState</span><span class="o">:</span><span class="w"> </span><span class="kt">RelationshipState</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="123-fallback-schema">12.3 fallback 链与 schema 验证</h3>
+<p>每个 case 的处理流程：</p>
+<div class="code-block"><pre><span></span><code><span class="mf">1.</span><span class="w"> </span><span class="nx">无</span><span class="w"> </span><span class="nx">backend</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">返回</span><span class="w"> </span><span class="nx">mock</span><span class="w"> </span><span class="kd">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mock</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">}</span>
+<span class="mf">2.</span><span class="w"> </span><span class="nx">callLLM</span><span class="w"> </span><span class="p">(</span><span class="nx">SDK</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">cache_control</span><span class="p">)</span>
+<span class="mf">3.</span><span class="w"> </span><span class="nx">tryParseJson</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">schema</span><span class="w"> </span><span class="nx">validate</span>
+<span class="mf">4.</span><span class="w"> </span><span class="nx">schema</span><span class="w"> </span><span class="nx">失败</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">返回</span><span class="w"> </span><span class="nx">mock</span><span class="w"> </span><span class="kd">with</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mock_fallback</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">}</span>
+<span class="mf">5.</span><span class="w"> </span><span class="nx">校验通过</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">返回</span><span class="w"> </span><span class="nx">LLM</span><span class="w"> </span><span class="nx">输出</span>
+</code></pre></div>
+
+<p>外层 try/catch 兜底任何抛错。<code>mock</code> / <code>mock_fallback</code> 字段供前端调试用，不影响渲染。</p>
+<h3 id="124-curl">12.4 调试用 curl 例子</h3>
+<div class="code-block"><pre><span></span><code><span class="nv">PAYLOAD</span><span class="o">=</span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;base&quot;: {&quot;name&quot;:&quot;小满&quot;,&quot;birthday&quot;:&quot;1998-03-15&quot;,&quot;mbti&quot;:&quot;INFJ&quot;,&quot;taName&quot;:&quot;阿哲&quot;},</span>
+<span class="s1">  &quot;userAgent&quot;: {&quot;name&quot;:&quot;小满&quot;,&quot;traits&quot;:[&quot;想被接住&quot;],&quot;hue&quot;:340},</span>
+<span class="s1">  &quot;taAgent&quot;: {&quot;name&quot;:&quot;阿哲&quot;,&quot;traits&quot;:[&quot;高冷边界感&quot;],&quot;hue&quot;:210},</span>
+<span class="s1">  &quot;state&quot;: {&quot;closeness&quot;:58,&quot;userMood&quot;:55,&quot;taAffection&quot;:62,&quot;taMood&quot;:55},</span>
+<span class="s1">  &quot;prevRounds&quot;: []</span>
+<span class="s1">}&#39;</span>
+
+curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:3000/api/agents<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;agent\&quot;:\&quot;round-engine\&quot;,\&quot;payload\&quot;:</span><span class="nv">$PAYLOAD</span><span class="s2">}&quot;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="13">13. 环境变量</h2>
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>默认</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>（空）</td>
+<td>真实 API key，第一优先级</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_AUTH_TOKEN</code></td>
+<td>（空）</td>
+<td>OAuth token，已被 Anthropic 封</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_MODEL</code></td>
+<td><code>claude-sonnet-4-5</code></td>
+<td>默认模型（仅 fallback 用）</td>
+</tr>
+</tbody>
+</table>
+<p><code>.env.local</code> 模板：</p>
+<div class="code-block"><pre><span></span><code># 优先方案：申请真实 API key
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxx
+ANTHROPIC_MODEL=claude-sonnet-4-5
+
+# 不设以上则走智能 mock（默认 + 即时响应）
+</code></pre></div>
+
+<hr />
+<h2 id="14">14. 部署考虑</h2>
+<h3 id="141-vercel">14.1 Vercel 部署</h3>
+<ul>
+<li><code>npm run build &amp;&amp; npm run start</code></li>
+<li>环境变量在 Vercel Dashboard 配</li>
+<li>注意：默认 build 会 statically analyze 所有 page；动态部分（<code>/api/agents</code>）会作为 serverless function</li>
+</ul>
+<h3 id="142">14.2 共享给他人测试</h3>
+<p>⚠️ <strong>不能简单 git 给别人 + npm run dev</strong>——因为 mock 模式只够本人测，需要真 API key 才能生成个性化推演。</p>
+<p>要让别人用，<strong>必须</strong>有 ANTHROPIC_API_KEY 配在 server 端：</p>
+<ol>
+<li>Vercel / Fly / Railway 部署，env 设 API key</li>
+<li>给用户公网链接</li>
+</ol>
+<p>或者部署到内网 + 反代 + 单一共享 key。</p>
+<h3 id="143-pwa">14.3 PWA / 添加到主屏幕</h3>
+<p><code>public/manifest.json</code> + <code>app/layout.tsx</code> metadata 已配。iOS Safari / Android Chrome 用户访问后可"添加到主屏幕"，启动后全屏无浏览器 chrome，体验接近原生 app。</p>
+<p>图标在 <code>public/icons/</code> 是 SVG，部署到 vercel 时自动 served。</p>
+<div class="code-block"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;心动模拟器 · AI Love-Lab&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;short_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;心动模拟器&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;display&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;standalone&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;orientation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;portrait&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;theme_color&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#1a1a2e&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="144-rate-limit">14.4 Rate limit 在多实例场景</h3>
+<p><code>lib/rate-limit.ts</code> 是<strong>内存级</strong>——Vercel serverless 跨 invocation / 跨 region 不共享。生产高流量必须换：</p>
+<ul>
+<li><strong>Upstash Redis</strong>（serverless friendly）</li>
+<li><strong>Vercel KV</strong>（同 Vercel 集成最快）</li>
+<li><strong>@upstash/ratelimit</strong> 库（成熟，封装好滑动窗口）</li>
+</ul>
+<p>切换只需替换 <code>lib/rate-limit.ts</code> 内部实现，对外接口保持不变。</p>
+<h3 id="143">14.3 成本估算</h3>
+<p>按 Haiku 4.5 定价（input $0.80/M / output $4/M）：</p>
+<ul>
+<li>单回合 round-engine：~3K input + 1K output = ~$0.0064 ≈ ¥0.045</li>
+<li>单读心 peek-mind：~2K input + 500 output = ~$0.0036 ≈ ¥0.025</li>
+<li>单介入 intervene：~3K input + 1.2K output = ~$0.0072 ≈ ¥0.050</li>
+<li>单终局 relationship-summary（sonnet $3/$15 per M）：~5K input + 1.5K output = ~$0.038 ≈ ¥0.27</li>
+</ul>
+<p>完整 10 回合一局（10 round + 3 peek + 2 intervene + 1 final）：
+- input：~50K tokens
+- output：~15K tokens
+- 综合 ≈ ¥0.8-1.2 / 局</p>
+<p>加 prompt caching 后大约能省 30-40%。</p>
+<hr />
+<h2 id="15">15. 已知限制 / 未来扩展点</h2>
+<h3 id="151">15.1 当前的"妥协"</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>现状</th>
+<th>想做</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM 真实推演</td>
+<td>没有 API key 时走 mock</td>
+<td>部署时务必配 API key</td>
+</tr>
+<tr>
+<td>OAuth 借用订阅</td>
+<td>被 Anthropic 永久封</td>
+<td>死路，别再尝试</td>
+</tr>
+<tr>
+<td>多模态</td>
+<td>完全不支持（user 端 image upload 没有 UI）</td>
+<td>后期补上聊天截图上传</td>
+</tr>
+<tr>
+<td>账号体系</td>
+<td>没有，全在 localStorage</td>
+<td>后期接微信登录 + 后端持久化</td>
+</tr>
+<tr>
+<td>分享卡截图导出</td>
+<td>✅ html-to-image 真实下载 + 微信兜底</td>
+<td>done</td>
+</tr>
+<tr>
+<td>数据埋点</td>
+<td>完全没有</td>
+<td>加 Plausible / Umami / 自建几行</td>
+</tr>
+<tr>
+<td>国际化</td>
+<td>全中文硬编码</td>
+<td>多语言后期</td>
+</tr>
+<tr>
+<td>Mock 多样性</td>
+<td>10 个模板 × cold/warm × jitter = ~20 变体</td>
+<td>扩到 30+ 模板，按 state 更精细分支</td>
+</tr>
+<tr>
+<td>Rate limit</td>
+<td>✅ 内存级 30/min（单实例 demo 够）</td>
+<td>多实例换 Upstash Redis</td>
+</tr>
+<tr>
+<td>Input sanitize</td>
+<td>✅ 客户端 80 字 + 服务端 strict sanitize</td>
+<td>接 moderation API 二次过滤</td>
+</tr>
+</tbody>
+</table>
+<h3 id="152">15.2 架构层面想做但没做</h3>
+<ul>
+<li><strong>streaming UI</strong>：当前 LLM 调用是非流式，用户看到 typing 动画但实际是一次性等完。改成 SSE 流式后单回合体感能从"等 5 秒"变成"逐步呈现"</li>
+<li>~~<strong>prefetch 下一回合</strong>~~ ✅ 已实现（见 §8.4）</li>
+<li><strong>真正的 traits → behavior 映射</strong>：现在 traits 只是字符串拼到 prompt 里。可以做成"高冷边界感"→ 后端规则 <code>{ maxReplyLength: 8, initTopicProb: 0.1 }</code> 这样的具身化规则，让 mock 也能精细呼应 traits</li>
+<li><strong>moderation 链路</strong>：sanitize 是规则级。复杂的内容审核（暴力 / 政治 / 仇恨）建议接 Anthropic 自家 moderation 或 OpenAI moderation 做二次过滤</li>
+<li><strong>持久化 prefetch</strong>：用户翻回前面页面时，prefetch 的"下一回合"仍保留在 useRef。如果用户刷新或换页，会丢失。可以 persist 到 sessionStorage</li>
+</ul>
+<h3 id="153">15.3 命盘恋语联动（产品矩阵层面）</h3>
+<p>参考 <code>命盘恋语×心动模拟器_产品矩阵PRD_v1.0.md</code>：
+- 命盘恋语作为前端引流，输出 8 型档案
+- 档案直接成为 User-Mirror 的初始化参数
+- 双人配对升级为双向沙盘</p>
+<p>但 ai-love-lab demo 还没接入命盘恋语侧。需要：
+- 新建 <code>/api/profile-import</code> endpoint 接收命盘档案
+- store 加 <code>userArchetype</code> 字段（"逃跑式" / "草稿箱式" 等）
+- builder 页加判断：如果已带档案就跳过部分问卷
+- round-engine prompt 引用 archetype</p>
+<hr />
+<h2 id="16">16. 关键文件速查表</h2>
+<table>
+<thead>
+<tr>
+<th>想改什么</th>
+<th>改哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12 题问卷题目 / 选项</td>
+<td><code>lib/quiz.ts</code></td>
+</tr>
+<tr>
+<td>关系阶段映射到初始 state</td>
+<td><code>lib/store/simulation-store.ts:deriveInitialRelationship</code></td>
+</tr>
+<tr>
+<td>加新维度到 RelationshipState</td>
+<td><code>lib/types.ts</code> + <code>lib/store</code> + 各 agent prompt</td>
+</tr>
+<tr>
+<td>round-engine 的硬约束 / 5 轮要求</td>
+<td><code>lib/agents/round-engine.ts:ROUND_ENGINE_SYSTEM_PROMPT</code></td>
+</tr>
+<tr>
+<td>读心揭示的内容结构</td>
+<td><code>lib/agents/peek-mind.ts</code> + <code>components/sandbox/PeekMindModal.tsx</code></td>
+</tr>
+<tr>
+<td>终局 share card 的话术</td>
+<td><code>lib/agents/relationship-summary.ts:RELATIONSHIP_SUMMARY_SYSTEM_PROMPT</code></td>
+</tr>
+<tr>
+<td>Mock 模板（无 API key 时的内容）</td>
+<td><code>lib/agents/mock.ts:ROUND_TEMPLATES</code></td>
+</tr>
+<tr>
+<td>翻页交互逻辑</td>
+<td><code>app/simulator/page.tsx:goNext / goPrev / handleDragEnd</code></td>
+</tr>
+<tr>
+<td>10 回合上限</td>
+<td><code>app/simulator/page.tsx:MAX_ROUNDS</code> 常量</td>
+</tr>
+<tr>
+<td>重玩本回合的 UX</td>
+<td><code>app/simulator/page.tsx:rerollLastRound</code> + <code>RoundDigest:onReroll</code> prop</td>
+</tr>
+<tr>
+<td>Prefetch 策略 / 失效条件</td>
+<td><code>app/simulator/page.tsx:prefetchNextRound + invalidatePrefetch</code></td>
+</tr>
+<tr>
+<td>share card 视觉</td>
+<td><code>app/report/page.tsx</code>（<code>#share-card</code> 节区）</td>
+</tr>
+<tr>
+<td>share card 导出图片格式</td>
+<td><code>app/report/page.tsx:handleSaveImage</code>（<code>toPng</code> 参数）</td>
+</tr>
+<tr>
+<td>微信浏览器兼容</td>
+<td><code>app/report/page.tsx:showInWechatViewer</code></td>
+</tr>
+<tr>
+<td>状态曲线维度 / 颜色</td>
+<td><code>app/report/page.tsx:Trajectory</code></td>
+</tr>
+<tr>
+<td>关键转折点排序逻辑</td>
+<td><code>lib/agents/mock.ts</code> 和 <code>relationship-summary.ts:keyMoments</code></td>
+</tr>
+<tr>
+<td>8 型恋爱模式接入（未来）</td>
+<td>新建 <code>lib/archetypes.ts</code> + 改 round-engine prompt</td>
+</tr>
+<tr>
+<td>添加新 agent</td>
+<td><code>lib/agents/*.ts</code> 新文件 + <code>lib/engine.ts</code> 加 callXxx + <code>route.ts</code> 加 case</td>
+</tr>
+<tr>
+<td>改首页文案 / CTA</td>
+<td><code>app/page.tsx</code></td>
+</tr>
+<tr>
+<td>隐私声明内容</td>
+<td><code>app/legal/privacy/page.tsx</code></td>
+</tr>
+<tr>
+<td>八字算法</td>
+<td><code>lib/bazi.ts</code>（基于 lunar-javascript）</td>
+</tr>
+<tr>
+<td>手机适配 padding / 字号</td>
+<td><code>app/globals.css</code> + 各 page 的 <code>sm:</code> 响应式 class</td>
+</tr>
+<tr>
+<td><strong>Rate limit 上限 / 切 Redis</strong></td>
+<td><code>lib/rate-limit.ts</code></td>
+</tr>
+<tr>
+<td><strong>Input sanitize 规则 / 脏字表</strong></td>
+<td><code>lib/sanitize.ts:INJECTION_PATTERNS / HARD_BLOCK</code></td>
+</tr>
+<tr>
+<td><strong>PWA manifest</strong></td>
+<td><code>public/manifest.json</code> + <code>app/layout.tsx:metadata</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="17">17. 调试技巧</h2>
+<h3 id="171">17.1 看后端日志</h3>
+<div class="code-block"><pre><span></span><code>nohup npm run dev &gt; /tmp/ai-love-lab-dev.log 2&gt;&amp;1 &amp;
+tail -f /tmp/ai-love-lab-dev.log
+</code></pre></div>
+
+<p>关键日志：</p>
+<div class="code-block"><pre><span></span><code>[auth] using Claude Code OAuth token from macOS keychain (subscriptionType: max)
+[llm] OAuth token rejected by Anthropic API (403). All subsequent calls will use smart mock.
+[round-engine] schema fail. raw[:400]= ...
+POST /api/agents 200 in 145ms
+</code></pre></div>
+
+<h3 id="172-store">17.2 看前端 store 状态</h3>
+<p>打开浏览器 devtools，console 执行：</p>
+<div class="code-block"><pre><span></span><code><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">localStorage</span><span class="p">.</span><span class="nx">getItem</span><span class="p">(</span><span class="s2">&quot;ai-love-lab-sim&quot;</span><span class="p">))</span>
+</code></pre></div>
+
+<p>看完整 SimulationState。</p>
+<h3 id="173-reset">17.3 reset 状态</h3>
+<div class="code-block"><pre><span></span><code><span class="nx">localStorage</span><span class="p">.</span><span class="nx">removeItem</span><span class="p">(</span><span class="s2">&quot;ai-love-lab-sim&quot;</span><span class="p">);</span>
+<span class="nx">location</span><span class="p">.</span><span class="nx">reload</span><span class="p">();</span>
+</code></pre></div>
+
+<p>或直接走到 <code>/report</code> 页点「换一对 agent」。</p>
+<h3 id="174-mock">17.4 强制走 mock 测试</h3>
+<p>不配 API key 即可。或临时在 <code>lib/auth.ts:getAnthropicCredential()</code> 顶部 return <code>{source:"none"}</code> 跳过所有真实路径。</p>
+<h3 id="175-cli">17.5 强制走 CLI 测试</h3>
+<div class="code-block"><pre><span></span><code><span class="nv">ALLOW_CLI_FALLBACK</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+
+<p>注意单回合会 60-100s，仅用于验证 LLM prompt 在真实模型下的输出质量。</p>
+<hr />
+<h2 id="18">18. 测试用例（手动）</h2>
+<h3 id="1_1">用例 1：完整跑通</h3>
+<ol>
+<li><code>/</code> → 「开始捏 agent →」</li>
+<li><code>/setup</code> → 填："小满" / "1998-03-15" / "INFJ" / "阿哲" → 「下一步」</li>
+<li><code>/builder</code> → Q1 选 B（高度暧昧）→ 答完 12 题 → 「开始推演」</li>
+<li><code>/simulator</code> → 点「推进时间」5 次 → 看到 5 个回合</li>
+<li>中间点「读心」一次，看 peek modal 内容</li>
+<li>中间点「介入」一次，type=message + 内容 "今晚出来吃饭" → 看新回合</li>
+<li>翻到第 1 页，再翻回最后一页，验证翻页流畅</li>
+<li>点「看主预言卡」→ 看 /report</li>
+<li>验证 share card 不含 ta 真名「阿哲」</li>
+</ol>
+<h3 id="210">用例 2：10 回合上限</h3>
+<ol>
+<li>跑到 10 个回合后：
+   - 「推进时间」按钮自动变成「看主预言卡」
+   - 「介入」按钮变灰
+   - 推进按钮点击直接跳 /report</li>
+</ol>
+<h3 id="3_1">用例 3：冷状态轨迹</h3>
+<ol>
+<li>setup → 同样输入</li>
+<li>Q1 选 D（断联期）→ 初始 closeness=14, taAffection=30</li>
+<li>推进几次看 ta 反应是否明显冷淡（应该多 "嗯。" "没回"）</li>
+<li>读心应该显示 "在抽离" 或 "想退一步"</li>
+</ol>
+<h3 id="4_1">用例 4：手机访问</h3>
+<ol>
+<li>Mac 跑 <code>npm run dev</code>（已绑 0.0.0.0）</li>
+<li>取 LAN IP：<code>ipconfig getifaddr en0</code></li>
+<li>手机同 WiFi 访问 <code>http://&lt;lan-ip&gt;:3000</code></li>
+<li>验证：
+   - 所有页面正确响应（HTTP 200）
+   - 触控按钮 ≥44pt
+   - 沙盘 HUD 不挤压
+   - 卡片左右滑动流畅
+   - safe-area 不被 home indicator 遮挡</li>
+</ol>
+<hr />
+<h2 id="19">19. 联系 / 维护</h2>
+<ul>
+<li>当前实现状态：MVP（demo 可用，未部署生产）</li>
+<li>下一步关键工作：
+  1. 配真实 ANTHROPIC_API_KEY 并部署到 Vercel
+  2. 加微信账号体系（实现矩阵 PRD 中的"账号前置"目标）
+  3. 接入命盘恋语 8 型档案（实现真正矩阵闭环）
+  4. moderation API 二次过滤 / 多实例 rate limit 换 Redis</li>
+</ul>
+<p>文档维护：每次架构层改动（特别是 Agent / 数据模型 / 状态机）后更新对应章节。</p>
+<hr />
+<h2 id="v1-v2-2026-05-12">附录：v1 → v2 变更日志（2026-05-12）</h2>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>变更</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bug</td>
+<td><code>keyMoments</code> 排序破坏修复（之前 <code>parseInt(impact)</code> = NaN 导致排序失效，改为按 |Δcloseness|+|ΔuserMood|+|ΔtaAffection| 总和排序）</td>
+</tr>
+<tr>
+<td>首页</td>
+<td>主标题从「捏两个 agent / 让 AI 看看你们会怎样」改为「你心里那个人，今天会发消息吗？」；CTA 从「开始捏 agent」改为「让 AI 演一次」</td>
+</tr>
+<tr>
+<td>移除</td>
+<td>删除 <code>lib/cli-llm.ts</code> 及所有 <code>ALLOW_CLI_FALLBACK</code> 引用（CLI 60-100s/回合体验比 mock 还差）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>「重玩本回合」按钮（<code>popLastRound</code> action + RoundDigest <code>onReroll</code> prop）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>报告页<strong>3 维状态曲线</strong>（closeness 实线 / userMood 紫虚线 / taAffection 红线·终局揭晓）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>Prefetch 下一回合（用户读当前页时后台跑，介入/撤销后失效）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td><code>lib/sanitize.ts</code> + 客户端 80 字上限 + 服务端 strictSanitize（含 prompt injection 检测）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>朋友圈 vs 私聊在 ta 反应上的真实差异（post 类型用「隔几小时点赞」「单独发截图」等延迟+广播感反应）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>「再读一次」按钮（PeekMindModal 内联，避免关闭再打开）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>介入产生的回合<strong>金边 + 角标</strong>视觉强化</td>
+</tr>
+<tr>
+<td>新增</td>
+<td><code>html-to-image</code> 真实导出 share card 为 PNG（+ 微信浏览器全屏 img 兜底）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>PWA manifest + SVG 图标（"添加到主屏幕"）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td><code>lib/rate-limit.ts</code> + 30/min IP 上限（已由 ops 视角加入 route.ts）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td><code>app/legal/privacy/</code> 隐私声明路由（首页底部链接）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>setup 页 ta 代称 field 加「⚠️ 请用代称，勿填真名 / 电话 / 工作单位」隐私提示</td>
+</tr>
+</tbody>
+</table>
+  </main>
+</div>
+
+</body>
+</html>

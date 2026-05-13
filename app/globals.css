@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  /* 手机安全区变量 */
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+html, body {
+  background: radial-gradient(ellipse at top, #1a2350 0%, #0b1230 65%, #050818 100%);
+  color: #f5e8df;
+  min-height: 100%;
+  /* 防止 iOS 双击缩放 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* 留出底部安全区，防止 iOS 底栏遮挡 */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 表单元素 iOS 字号防自动放大 */
+input, textarea, select {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans, "PingFang SC"), system-ui, sans-serif;
+}
+
+.font-serif-cn {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "STSong", "SimSun", ui-serif, serif;
+  letter-spacing: 0.02em;
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 180, 160, 0.15);
+}
+
+.bubble-user {
+  background: linear-gradient(135deg, #4a7fc7 0%, #2f5aa8 100%);
+  color: #f5f7ff;
+}
+
+.bubble-crush {
+  background: linear-gradient(135deg, #fff3ec 0%, #ffe0d0 100%);
+  color: #2a1a14;
+}
+
+.event-narration {
+  color: #c9b8a8;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(232,180,160,0.25); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* 打字机光标 */
+.typing-dots::after {
+  content: "·";
+  display: inline-block;
+  animation: typingDots 1.2s steps(3) infinite;
+}
+@keyframes typingDots {
+  0%   { content: "·"; }
+  33%  { content: "··"; }
+  66%  { content: "···"; }
+  100% { content: "·"; }
+}
+
+/* ============================================
+   截图模式：html-to-image 不支持 backdrop-filter
+   和 filter: blur，所以在 capturing 时换成 capture-safe
+   的纯 radial-gradient 背景
+   ============================================ */
+.capturing {
+  /* 用 radial-gradient 模拟原来 blur 装饰带来的光晕 */
+  background-image:
+    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(246, 164, 135, 0.28), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, rgba(238, 188, 106, 0.22), transparent 60%),
+    linear-gradient(135deg, rgba(246, 164, 135, 0.30), rgba(238, 126, 94, 0.12) 50%, rgba(252, 211, 77, 0.18)) !important;
+}
+/* glass 元素在截图模式下用纯背景 */
+.capturing .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+}
+/* 所有 filter:blur 装饰隐藏（也已被 data-capture-skip 过滤掉，双保险）*/
+.capturing [class*="blur-"] {
+  filter: none !important;
+  -webkit-filter: none !important;
+  display: none !important;
+}
