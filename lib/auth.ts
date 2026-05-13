@@ -23,8 +23,11 @@ export function getAnthropicCredential(): AnthropicCredential {
   if (cached) return cached;
 
   // 1. 标准 API key
+  //    - sk-ant-api* (官方 Anthropic key)
+  //    - 任意 key + ANTHROPIC_BASE_URL (第三方兼容端点，例如 MiniMax)
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (apiKey && apiKey.startsWith("sk-ant-api")) {
+  const hasCustomBaseUrl = !!process.env.ANTHROPIC_BASE_URL?.trim();
+  if (apiKey && (apiKey.startsWith("sk-ant-api") || hasCustomBaseUrl)) {
     cached = { apiKey, source: "env-apikey" };
     return cached;
   }
@@ -44,11 +47,28 @@ export function getAnthropicCredential(): AnthropicCredential {
   // 仅 macOS 可用
   if (process.platform === "darwin") {
     try {
-      const raw = execFileSync(
-        "security",
-        ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
-        { encoding: "utf8", timeout: 4000 }
-      ).trim();
+      // Keychain 里可能有多条同名 entry（旧的 acct=unknown + 新的 acct=$USER）
+      // 优先按当前用户名匹配，找不到再 fallback 到无 account 的首条
+      const user = process.env.USER || process.env.LOGNAME || "";
+      let raw = "";
+      if (user) {
+        try {
+          raw = execFileSync(
+            "security",
+            ["find-generic-password", "-s", "Claude Code-credentials", "-a", user, "-w"],
+            { encoding: "utf8", timeout: 4000 }
+          ).trim();
+        } catch {
+          /* fall through */
+        }
+      }
+      if (!raw) {
+        raw = execFileSync(
+          "security",
+          ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
+          { encoding: "utf8", timeout: 4000 }
+        ).trim();
+      }
       const parsed = JSON.parse(raw);
       const accessToken = parsed?.claudeAiOauth?.accessToken;
       if (typeof accessToken === "string" && accessToken.startsWith("sk-ant-oat")) {
@@ -78,8 +98,9 @@ export function getAnthropicCredential(): AnthropicCredential {
     }
   }
 
-  cached = { source: "none" };
-  return cached;
+  // 不缓存 "none"：让用户刷新 Claude Code 登录 / 修 env 后下一次请求自动重试，
+  // 而不必重启 dev server。keychain 读取很便宜（~10ms）
+  return { source: "none" };
 }
 
 export function hasAnthropicAuth(): boolean {
