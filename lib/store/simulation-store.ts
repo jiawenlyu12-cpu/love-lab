@@ -66,6 +66,13 @@ function clamp(v: number, lo = 0, hi = 100): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+export interface SimPreset {
+  base: BaseProfile;
+  userTraits: string[];
+  taTraits: string[];
+  quizAnswers: QuizAnswer[];
+}
+
 interface SimStore extends SimulationState {
   setBase: (p: Partial<BaseProfile>) => void;
   initAgentsFromBase: () => void;
@@ -76,7 +83,11 @@ interface SimStore extends SimulationState {
   shiftUserHue: (delta: number) => void;
   shiftTaHue: (delta: number) => void;
 
-  // ⭐ 沙盘新 actions
+  // Atomic one-shot seed: collapses resetAll → setBase → initAgentsFromBase →
+  // addQuizAnswer × N → pushUserTrait × N → pushTaTrait × N → initRelationship
+  // → setPhase("play") into a single set() so subscribers re-render once.
+  applyPreset: (p: SimPreset) => void;
+
   initRelationship: () => void;
   appendRound: (r: RoundEvent) => void;
   applyDelta: (d: StateDelta) => RelationshipState;
@@ -160,6 +171,29 @@ export const useSimStore = create<SimStore>()(
       shiftTaHue: (delta) => {
         const cur = get().taAgent;
         set({ taAgent: { ...cur, hue: (cur.hue + delta + 360) % 360 } });
+      },
+
+      applyPreset: (p) => {
+        const dedupe = (xs: string[]) => Array.from(new Set(xs));
+        set({
+          ...initialState,
+          base: { ...DEFAULT_BASE, ...p.base },
+          userAgent: {
+            ...DEFAULT_USER_AGENT,
+            name: p.base.name || "你",
+            avatarSeed: p.base.name || "user",
+            traits: dedupe(p.userTraits),
+          },
+          taAgent: {
+            ...DEFAULT_TA_AGENT,
+            name: p.base.taName || "Ta",
+            avatarSeed: p.base.taName || "ta",
+            traits: dedupe(p.taTraits),
+          },
+          quizAnswers: p.quizAnswers,
+          relationship: deriveInitialRelationship(p.quizAnswers),
+          phase: "play",
+        });
       },
 
       // ⭐ 沙盘 actions

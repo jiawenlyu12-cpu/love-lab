@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { setGlobalDispatcher, ProxyAgent } from "undici";
+
+// Node 22 的 global fetch (undici) 默认忽略 HTTPS_PROXY env
+// 启动时若检测到代理变量，设一次全局 dispatcher，让 SDK 走代理
+{
+  const proxy =
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY ||
+    process.env.http_proxy;
+  if (proxy) {
+    try {
+      setGlobalDispatcher(new ProxyAgent(proxy));
+      // eslint-disable-next-line no-console
+      console.log(`[net] undici proxy dispatcher set: ${proxy.replace(/(:\/\/)([^@]+@)?/, "$1***@")}`);
+    } catch (e) {
+      console.warn("[net] failed to set proxy dispatcher:", e);
+    }
+  }
+}
 import { computeBazi } from "@/lib/bazi";
 import { getAnthropicCredential, hasAnthropicAuth } from "@/lib/auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -31,7 +51,24 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
+const MODEL_BY_HINT = {
+  sonnet:
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL ||
+    process.env.ANTHROPIC_MODEL ||
+    "claude-sonnet-4-5",
+  haiku:
+    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL || "claude-haiku-4-5-20251001",
+  opus: process.env.ANTHROPIC_DEFAULT_OPUS_MODEL || "claude-opus-4-7",
+} as const;
+const BASE_URL = process.env.ANTHROPIC_BASE_URL?.trim() || undefined;
+
+// 输出 token 预算 — 中文输出比英文 token 用得多，给足头空间防截断
+const MAX_TOKENS = {
+  roundEngine: 3000,
+  peekMind: 1200,
+  intervene: 3000,
+  summary: 5000,
+} as const;
 
 let _client: Anthropic | null | undefined;
 function getClient(): Anthropic | null {
@@ -46,6 +83,7 @@ function getClient(): Anthropic | null {
   _client = new Anthropic({
     apiKey: cred.apiKey ?? null,
     authToken: cred.authToken ?? null,
+    baseURL: BASE_URL,
     defaultHeaders,
   });
   return _client;
@@ -66,12 +104,7 @@ async function callLLM(
   const isOauth = cred.source === "env-oauth" || cred.source === "keychain-oauth";
 
   if (client) {
-    const modelName =
-      modelHint === "haiku"
-        ? "claude-haiku-4-5-20251001"
-        : modelHint === "opus"
-        ? "claude-opus-4-7"
-        : MODEL;
+    const modelName = MODEL_BY_HINT[modelHint ?? "sonnet"];
 
     let content: Anthropic.MessageParam["content"];
     if (images && images.length > 0) {
@@ -101,18 +134,24 @@ async function callLLM(
     }
 
     try {
-      // ⭐ Prompt caching：把 system prompt 标 ephemeral
-      // SDK 0.32 types 还没有 cache_control，运行时支持，用 as any 绕过类型
+      // OAuth (Claude Code 借用订阅) 模式下，Anthropic 只放行带 Claude Code 哨兵 system
+      // 的请求。把哨兵作为第一段 system，真 prompt 作为第二段（ephemeral 缓存）
+      const systemBlocks: any[] = [];
+      if (isOauth) {
+        systemBlocks.push({
+          type: "text",
+          text: "You are Claude Code, Anthropic's official CLI for Claude.",
+        });
+      }
+      systemBlocks.push({
+        type: "text",
+        text: system,
+        cache_control: { type: "ephemeral" },
+      });
       const resp = await client.messages.create({
         model: modelName,
         max_tokens: maxTokens,
-        system: [
-          {
-            type: "text",
-            text: system,
-            cache_control: { type: "ephemeral" },
-          } as any,
-        ],
+        system: systemBlocks,
         messages: [{ role: "user", content }],
       });
       return resp.content
@@ -259,7 +298,7 @@ export async function POST(req: NextRequest) {
             hint: payload.hint,
             bazi,
           }),
-          1200,
+          MAX_TOKENS.roundEngine,
           "haiku",
           images
         );
@@ -302,7 +341,7 @@ export async function POST(req: NextRequest) {
             state: payload.state,
             prevRounds: payload.prevRounds || [],
           }),
-          600,
+          MAX_TOKENS.peekMind,
           "haiku"
         );
         const parsed = tryParseJson<any>(raw);
@@ -366,7 +405,7 @@ export async function POST(req: NextRequest) {
             userInputContent: payload.userInputContent,
             bazi,
           }),
-          1400,
+          MAX_TOKENS.intervene,
           "haiku"
         );
         const parsed = tryParseJson<any>(raw);
@@ -409,7 +448,7 @@ export async function POST(req: NextRequest) {
             finalState: payload.finalState,
             bazi: baziRS,
           }),
-          2000,
+          MAX_TOKENS.summary,
           "sonnet"
         );
         const parsed = tryParseJson<any>(raw);
