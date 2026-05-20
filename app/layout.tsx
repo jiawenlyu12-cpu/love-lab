@@ -4,12 +4,12 @@ import WechatHint from "@/components/WechatHint";
 import PageviewTracker from "@/components/PageviewTracker";
 
 export const metadata: Metadata = {
-  title: "心动模拟器 · AI Love-Lab",
-  description: "在沙盘中推演那段你不敢真实开口的关系。",
+  title: "Lovelab · 520 这个结局你能扛得住吗",
+  description: "给 AI 看你和 ta 的聊天截图 · 配上双方生日的八字 · 钉死一个 520 结局",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "心动模拟器",
+    title: "Lovelab · 520",
     statusBarStyle: "black-translucent",
   },
   icons: {
