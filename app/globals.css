@@ -65,6 +65,73 @@ body {
 ::-webkit-scrollbar-thumb { background: rgba(232,180,160,0.25); border-radius: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* Editorial grain noise — 比散点更克制、更纸质 */
+.bg-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Editorial 规则线 */
+.rule-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,180,160,0.35), transparent);
+}
+.rule-line-solid {
+  height: 1px;
+  background: rgba(232,180,160,0.18);
+}
+
+/* English caps 标签 */
+.caps {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+/* italic 衬线英文/数字 */
+.serif-italic {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+
+/* 倒计时 flip：旧数字向上移出，新数字从下方滑入 */
+@keyframes flipIn {
+  0%   { transform: translateY(45%); opacity: 0; }
+  60%  { transform: translateY(0);   opacity: 1; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+.flip-num {
+  animation: flipIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* CTA 箭头滑动 */
+.cta-arrow {
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.group:hover .cta-arrow { transform: translateX(6px); }
+
+/* CTA 下划线展开 */
+.cta-underline {
+  position: relative;
+}
+.cta-underline::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -6px;
+  width: 0; height: 1px;
+  background: rgba(232,180,160,0.7);
+  transition: width 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), left 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.group:hover .cta-underline::after {
+  left: 0; width: 100%;
+}
+
 /* 打字机光标 */
 .typing-dots::after {
   content: "·";

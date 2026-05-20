@@ -24,6 +24,11 @@ import { computeBazi } from "@/lib/bazi";
 import { getAnthropicCredential, hasAnthropicAuth } from "@/lib/auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { strictSanitize } from "@/lib/sanitize";
+import {
+  incrementLLMCount,
+  getUsageStats,
+  shouldCircuitBreak,
+} from "@/lib/usage-tracker";
 
 import {
   ROUND_ENGINE_SYSTEM_PROMPT,
@@ -47,6 +52,22 @@ import {
   mockIntervene,
   mockRelationshipSummary,
 } from "@/lib/agents/mock";
+import {
+  computeVerdict,
+  verdictLabel,
+  deriveNextChanceDate,
+} from "@/lib/five-twenty-verdict";
+
+function deriveNextChance(
+  keyDate: string | undefined,
+  dayStem: string | undefined
+): { nextChanceDate: string; nextChanceReason: string } {
+  const { date, reason } = deriveNextChanceDate({
+    fromDate: keyDate,
+    userDayStem: dayStem,
+  });
+  return { nextChanceDate: date, nextChanceReason: reason };
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,11 +84,12 @@ const MODEL_BY_HINT = {
 const BASE_URL = process.env.ANTHROPIC_BASE_URL?.trim() || undefined;
 
 // 输出 token 预算 — 中文输出比英文 token 用得多，给足头空间防截断
+// summary 从 5000 削到 2200：Netlify 函数 26s 上限，5000 tokens 的 sonnet 推理通常 >30s
 const MAX_TOKENS = {
   roundEngine: 3000,
   peekMind: 1200,
   intervene: 3000,
-  summary: 5000,
+  summary: 2200,
 } as const;
 
 let _client: Anthropic | null | undefined;
@@ -97,8 +119,15 @@ async function callLLM(
   user: string,
   maxTokens = 1500,
   modelHint?: "haiku" | "sonnet" | "opus",
-  images?: string[]
+  images?: string[],
+  tools?: any[]
 ): Promise<string> {
+  // 熔断：用量超 95%，跳过 LLM 直接走 mock，保护剩余配额
+  if (await shouldCircuitBreak()) {
+    console.warn("[llm] circuit breaker open: usage > 95%, forcing mock");
+    throw new Error("CIRCUIT_BREAKER_OPEN");
+  }
+
   const client = !sdkOauthBanned ? getClient() : null;
   const cred = getAnthropicCredential();
   const isOauth = cred.source === "env-oauth" || cred.source === "keychain-oauth";
@@ -148,17 +177,37 @@ async function callLLM(
         text: system,
         cache_control: { type: "ephemeral" },
       });
-      const resp = await client.messages.create({
+      const createParams: any = {
         model: modelName,
         max_tokens: maxTokens,
         system: systemBlocks,
         messages: [{ role: "user", content }],
-      });
-      return resp.content
-        .filter((c): c is Anthropic.TextBlock => c.type === "text")
-        .map((c) => c.text)
-        .join("\n")
-        .trim();
+      };
+      if (tools && tools.length > 0) {
+        createParams.tools = tools;
+      }
+      const resp = await client.messages.create(createParams);
+      // 计数成功的 LLM 调用
+      await incrementLLMCount();
+      // 取 content 里所有 text block；web_search 启用时会有多个 text 块（中间夹 tool_use / tool_result）
+      // 只用最后一个 text block 作为最终答案——这是 Claude 写 JSON 的位置
+      const textBlocks = resp.content.filter(
+        (c): c is Anthropic.TextBlock => c.type === "text"
+      );
+      const finalText =
+        textBlocks.length > 0
+          ? textBlocks[textBlocks.length - 1].text
+          : "";
+      // 计数 web_search 调用（用于 admin 监控成本）
+      if (tools && tools.length > 0) {
+        const wsCount = resp.content.filter(
+          (c: any) => c?.type === "server_tool_use" && c?.name === "web_search"
+        ).length;
+        if (wsCount > 0) {
+          console.log(`[llm] web_search used ${wsCount} times in this call`);
+        }
+      }
+      return finalText.trim();
     } catch (err: any) {
       // OAuth token 被 Anthropic 拒绝（403 forbidden）→ 永久 ban，让上层 fallback 到 mock
       const status = err?.status || err?.response?.status;
@@ -189,9 +238,7 @@ function parseDataUrl(
 }
 
 function hasLLMBackend(): boolean {
-  // 总是返回 true：有真实 LLM 用真实，没有用 mock，都能正常响应
-  // 之所以保留这个函数是为了未来万一要 hard-fail 的入口
-  return true;
+  return hasAnthropicAuth();
 }
 
 function tryParseJson<T>(s: string | null | undefined): T | null {
@@ -212,14 +259,32 @@ async function safeCallLLM(
   user: string,
   maxTokens = 1500,
   modelHint?: "haiku" | "sonnet" | "opus",
-  images?: string[]
+  images?: string[],
+  tools?: any[]
 ): Promise<string | null> {
   try {
-    return await callLLM(system, user, maxTokens, modelHint, images);
+    return await callLLM(system, user, maxTokens, modelHint, images, tools);
   } catch (e: any) {
     console.error("[llm] call failed:", e?.message || e);
     return null;
   }
+}
+
+// ⭐ web_search 工具规格
+// 用户场景里含年代 / 影视 / 历史指代时挂上，让 Claude 自行检索背景知识
+// max_uses=2：每次调用最多 2 次搜索，cost cap ≈ $0.02 / call
+function buildWebSearchTool(maxUses = 2): any {
+  return {
+    type: "web_search_20250305",
+    name: "web_search",
+    max_uses: maxUses,
+  };
+}
+
+function shouldEnableWebSearch(scenarioHint?: string): boolean {
+  if (process.env.ENABLE_WEB_SEARCH === "false") return false;
+  if (!scenarioHint || scenarioHint.trim().length < 4) return false;
+  return true; // 有 scenarioHint 就启用，让 Claude 自己决定要不要真去搜
 }
 
 // 校验 round-engine / intervene 共用 schema
@@ -238,6 +303,13 @@ function validateRoundOutput(p: any): boolean {
     typeof p.delta.taMood === "number" &&
     typeof p.delta.reason === "string"
   );
+}
+
+// GET 端点：浏览器直接打开看本月 LLM 用量
+// /api/agents → { month, count, limit, pct }
+export async function GET() {
+  const stats = await getUsageStats();
+  return NextResponse.json(stats);
 }
 
 export async function POST(req: NextRequest) {
@@ -263,6 +335,23 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { agent, payload } = body as { agent: string; payload: any };
+
+  // 用量统计端点
+  if (agent === "_usage") {
+    const stats = await getUsageStats();
+    return NextResponse.json(stats);
+  }
+
+  // ⭐ 服务端兜底：cap scenarioHint 长度 + 过滤控制字符
+  if (typeof payload.scenarioHint === "string") {
+    const cleaned = payload.scenarioHint
+      // 移除控制字符（保留换行 / tab）
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+      .slice(0, 500);
+    payload.scenarioHint = cleaned || undefined;
+  }
+
   const hasBackend = hasLLMBackend();
 
   try {
@@ -297,10 +386,19 @@ export async function POST(req: NextRequest) {
             prevRounds: payload.prevRounds || [],
             hint: payload.hint,
             bazi,
+            replayCount: payload.replayCount,
+            archetype: payload.archetype,
+            scenarioHint: payload.scenarioHint,
+            quizAnswers: payload.quizAnswers,
+            keyDate: payload.keyDate,
+            fatedMoment: payload.fatedMoment,
           }),
           MAX_TOKENS.roundEngine,
           "haiku",
-          images
+          images,
+          shouldEnableWebSearch(payload.scenarioHint)
+            ? [buildWebSearchTool(2)]
+            : undefined
         );
         const parsed = tryParseJson<any>(raw);
         if (!validateRoundOutput(parsed)) {
@@ -404,6 +502,12 @@ export async function POST(req: NextRequest) {
             userInputType: payload.userInputType,
             userInputContent: payload.userInputContent,
             bazi,
+            replayCount: payload.replayCount,
+            archetype: payload.archetype,
+            scenarioHint: payload.scenarioHint,
+            quizAnswers: payload.quizAnswers,
+            keyDate: payload.keyDate,
+            fatedMoment: payload.fatedMoment,
           }),
           MAX_TOKENS.intervene,
           "haiku"
@@ -447,9 +551,18 @@ export async function POST(req: NextRequest) {
             rounds: payload.rounds || [],
             finalState: payload.finalState,
             bazi: baziRS,
+            replayCount: payload.replayCount,
+            archetype: payload.archetype,
+            scenarioHint: payload.scenarioHint,
+            keyDate: payload.keyDate,
+            fatedMoment: payload.fatedMoment,
           }),
           MAX_TOKENS.summary,
-          "sonnet"
+          "haiku",
+          undefined,
+          shouldEnableWebSearch(payload.scenarioHint)
+            ? [buildWebSearchTool(2)]
+            : undefined
         );
         const parsed = tryParseJson<any>(raw);
         const ok =
@@ -457,11 +570,7 @@ export async function POST(req: NextRequest) {
           parsed.shareCard &&
           typeof parsed.shareCard.title === "string" &&
           typeof parsed.shareCard.prophecyLine === "string" &&
-          typeof parsed.shareCard.punchline === "string" &&
-          parsed.analysis &&
-          typeof parsed.analysis.yourProjection === "string" &&
-          typeof parsed.analysis.yourPosition === "string" &&
-          typeof parsed.analysis.yourBlindSpot === "string";
+          typeof parsed.shareCard.punchline === "string";
         if (!ok) {
           console.error(
             "[relationship-summary] schema fail. raw[:400]=",
@@ -472,7 +581,32 @@ export async function POST(req: NextRequest) {
             mock_fallback: true,
           });
         }
-        return NextResponse.json(parsed);
+        // ⭐ 服务端规则化追加 verdict（5/20 三档结论）
+        const finalState = payload.finalState || {
+          closeness: 50, userMood: 50, taAffection: 50, taMood: 50,
+        };
+        const verdict = computeVerdict(finalState);
+        const llmFiveTwenty = parsed.fiveTwenty || {};
+        const enriched = {
+          ...parsed,
+          fiveTwenty: {
+            verdict,
+            verdictLabel: verdictLabel(verdict),
+            keyMomentTime: typeof llmFiveTwenty.keyMomentTime === "string"
+              ? llmFiveTwenty.keyMomentTime
+              : "23:47",
+            keyMomentAction: typeof llmFiveTwenty.keyMomentAction === "string"
+              ? llmFiveTwenty.keyMomentAction
+              : "那一刻你没说的话",
+            ...(verdict === "wont"
+              ? deriveNextChance(payload.keyDate, baziRS?.dayStem)
+              : {}),
+            ...(verdict !== "wont" && typeof llmFiveTwenty.nextChanceReason === "string"
+              ? { nextChanceReason: llmFiveTwenty.nextChanceReason }
+              : {}),
+          },
+        };
+        return NextResponse.json(enriched);
       }
 
       default:

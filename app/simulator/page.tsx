@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
@@ -18,7 +18,10 @@ import SandboxHud from "@/components/sandbox/SandboxHud";
 import RoundDigest from "@/components/sandbox/RoundDigest";
 import PeekMindModal from "@/components/sandbox/PeekMindModal";
 import InterveneModal from "@/components/sandbox/InterveneModal";
+import ScenarioPicker from "@/components/sandbox/ScenarioPicker";
+import { buildOpeningProphecy } from "@/lib/opening-prophecy";
 import { cn, uid } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 type LocalPhase =
   | "idle"
@@ -40,6 +43,11 @@ export default function SimulatorPage() {
     relationship,
     peeksRemaining,
     quizAnswers,
+    finalSummary,
+    replayCount,
+    archetype,
+    chatScreenshots,
+    setBase,
     initRelationship,
     appendRound,
     applyDelta,
@@ -73,8 +81,10 @@ export default function SimulatorPage() {
       router.replace("/builder");
       return;
     }
+    track("simulator_opened");
     if (rounds.length === 0 && quizAnswers.length > 0) {
       initRelationship();
+      track("prophecy_viewed");
     } else if (rounds.length > 0) {
       setCurrentPage(rounds.length - 1);
     }
@@ -85,6 +95,7 @@ export default function SimulatorPage() {
     const t = setTimeout(() => setToast(null), 2400);
     return () => clearTimeout(t);
   }, [toast]);
+
 
   // 当用户翻到最后一页 + 还能推进 + 没在 busy + 没已缓存 → 偷偷 prefetch
   useEffect(() => {
@@ -151,6 +162,10 @@ export default function SimulatorPage() {
       setToast("已经 10 个回合，可以看主预言了");
       return;
     }
+    track("round_advance");
+    if (rounds.length === 0 && (chatScreenshots?.length ?? 0) > 0) {
+      track("round_first_with_screenshots");
+    }
     setPhase("advancing");
     try {
       // ⚡ 优先用 prefetched 缓存（仅当基于的回合数仍匹配，即用户没介入 / 没撤销）
@@ -169,6 +184,12 @@ export default function SimulatorPage() {
         taAgent,
         state: relationship,
         prevRounds: rounds,
+        replayCount,
+        archetype,
+        scenarioHint: base.scenarioHint,
+        quizAnswers,
+        images: chatScreenshots,
+        keyDate: prophecy.keyDay.date,
       });
       consumeRoundResult(r, false);
     } catch (e) {
@@ -190,6 +211,12 @@ export default function SimulatorPage() {
         taAgent,
         state: relationship,
         prevRounds: rounds,
+        replayCount,
+        archetype,
+        scenarioHint: base.scenarioHint,
+        quizAnswers,
+        images: chatScreenshots,
+        keyDate: prophecy.keyDay.date,
       });
       // 拿到结果时如果 state 已经变了（用户介入 / 撤销 / 再推进），就不采用
       if (useSimStore.getState().rounds.length === basedOn) {
@@ -203,6 +230,7 @@ export default function SimulatorPage() {
   // 重玩本回合：撤销最后一个 round（反向 delta），再 advance 一次
   async function rerollLastRound() {
     if (rounds.length === 0 || busy) return;
+    track("round_reroll");
     const popped = popLastRound();
     if (!popped) return;
     invalidatePrefetch();
@@ -221,6 +249,7 @@ export default function SimulatorPage() {
       setToast("已经 10 个回合，可以看主预言了");
       return;
     }
+    track("intervene_submit");
     invalidatePrefetch(); // 介入会改变状态，prefetched 失效
     setPhase("intervening");
     try {
@@ -232,6 +261,12 @@ export default function SimulatorPage() {
         prevRounds: rounds,
         userInputType: type,
         userInputContent: content,
+        replayCount,
+        archetype,
+        scenarioHint: base.scenarioHint,
+        quizAnswers,
+        images: chatScreenshots,
+        keyDate: prophecy.keyDay.date,
       });
       consumeRoundResult(r, true);
     } catch (e) {
@@ -248,6 +283,7 @@ export default function SimulatorPage() {
       return;
     }
     if (!consumePeek()) return;
+    track("peek_used");
     setPhase("peeking");
     try {
       const r = await callPeekMind({
@@ -275,9 +311,14 @@ export default function SimulatorPage() {
         taAgent,
         rounds,
         finalState: relationship,
+        replayCount,
+        archetype,
+        scenarioHint: base.scenarioHint,
+        keyDate: prophecy.keyDay.date,
       });
       setFinalSummary({
         shareCard: r.shareCard,
+        fiveTwenty: (r as any).fiveTwenty,
         analysis: r.analysis,
         keyMoments: r.keyMoments,
       });
@@ -292,6 +333,16 @@ export default function SimulatorPage() {
 
   const userName = userAgent.name || base.name || "你";
   const taName = taAgent.name || base.taName || "Ta";
+
+  const prophecy = useMemo(
+    () =>
+      buildOpeningProphecy({
+        base,
+        quizAnswers,
+        chatScreenshotsCount: chatScreenshots?.length ?? 0,
+      }),
+    [base, quizAnswers, chatScreenshots]
+  );
 
   const busy =
     phase === "advancing" ||
@@ -369,35 +420,90 @@ export default function SimulatorPage() {
 
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* === 空态：第一回合 === */}
+        {/* === 空态：开局预言 === */}
         {rounds.length === 0 && phase !== "advancing" && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="flex-1 overflow-y-auto px-5 py-4">
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-md mx-auto"
             >
-              <h2 className="font-serif-cn text-rose-100 text-xl mb-2">
-                5/20 即将开始
+              <div className="text-center text-rose-200/55 text-[9.5px] tracking-[0.4em] uppercase mb-1.5">
+                ✦ 开 局 预 言 ✦
+              </div>
+              <h2 className="font-serif-cn text-rose-100 text-xl text-center mb-1 leading-snug">
+                {prophecy.headline}
               </h2>
-              <p className="text-rose-200/55 text-sm mb-6 leading-relaxed max-w-xs">
-                你和 {taName} 的状态已经就位。
-                <br />
-                点「推进时间」让这一天真正开始。
-              </p>
-              <p className="text-rose-200/45 text-[11px] mb-8">
-                10 个回合上限 · 介入 / 读心 不消耗回合
-              </p>
+              {prophecy.headlineEvidence && (
+                <p className="text-center text-rose-200/50 text-[10px] leading-snug mb-3">
+                  {prophecy.headlineEvidence}
+                </p>
+              )}
+
+              {/* === 双人命盘速览 === */}
+              <PairChart
+                user={prophecy.user}
+                ta={prophecy.ta}
+                compatibility={prophecy.compatibility}
+              />
+
+              {/* 3 题 → 剧本（一行紧凑版） */}
+              {prophecy.archetypeReveal && (
+                <div className="mt-3 rounded-xl border border-rose-300/18 bg-white/[0.03] px-3 py-2">
+                  <p className="text-rose-100/85 text-[11.5px] leading-snug font-serif-cn">
+                    <span className="text-rose-300/80 mr-1.5">
+                      ▍{(chatScreenshots?.length ?? 0) > 0 ? "3题+聊天推算" : "3题推算"}
+                    </span>
+                    {prophecy.archetypeReveal}
+                  </p>
+                </div>
+              )}
+
+              {/* 聊天截图接入提示（仅当用户上传了至少 1 张） */}
+              {prophecy.screenshotsLine && (
+                <div className="mt-2 rounded-xl border border-rose-300/30 bg-rose-300/[0.06] px-3 py-2">
+                  <p className="text-rose-100/95 text-[11.5px] leading-snug">
+                    {prophecy.screenshotsLine}
+                  </p>
+                </div>
+              )}
+
+              {/* 关键日（紧凑） */}
+              <div className="mt-3 rounded-2xl border border-rose-300/22 bg-rose-300/5 px-3 py-2">
+                <p className="text-rose-100/90 text-[12px] leading-snug font-serif-cn">
+                  <span className="text-rose-300/85 mr-1.5">⌛ 关键日</span>
+                  {prophecy.keyDay.sentence}
+                </p>
+                {prophecy.keyDay.evidenceLine && (
+                  <p className="mt-1 text-rose-200/45 text-[10px] leading-snug">
+                    {prophecy.keyDay.evidenceLine}
+                  </p>
+                )}
+              </div>
+
+              {/* 场景选择 */}
+              <div className="mt-3">
+                <ScenarioPicker
+                  value={base.scenarioHint || ""}
+                  onChange={(v) => {
+                    setBase({ scenarioHint: v });
+                    if (v) track("scenario_picked");
+                  }}
+                />
+              </div>
+
               <button
                 onClick={() => void advance()}
                 disabled={busy}
                 className={cn(
-                  "px-10 py-3.5 rounded-full text-sm font-medium transition active:scale-95",
+                  "mt-4 w-full py-3 rounded-full text-sm font-medium transition active:scale-95",
                   busy
                     ? "bg-white/5 text-rose-200/30 cursor-not-allowed"
                     : "bg-gradient-to-r from-rose-300 to-rose-400 text-midnight-900 hover:scale-[1.02] shadow-lg shadow-rose-500/30"
                 )}
               >
-                ⟫ 推进时间
+                翻 开 第 一 页 ⟫
               </button>
             </motion.div>
           </div>
@@ -482,7 +588,7 @@ export default function SimulatorPage() {
                       defaultOpen={true}
                       highlight={false}
                       onReroll={
-                        isLastPage && !busy && rounds.length > 0
+                        isLastPage && !busy && rounds.length > 0 && !atRoundCap
                           ? rerollLastRound
                           : undefined
                       }
@@ -532,6 +638,14 @@ export default function SimulatorPage() {
                       </span>
                     </>
                   )}
+                  {!busy && atRoundCap && !finalSummary && (
+                    <>
+                      {" · "}
+                      <span className="text-rose-300/85">
+                        已达 10 回合上限，准备好就点"看主预言卡"
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <button
@@ -565,11 +679,11 @@ export default function SimulatorPage() {
                   ✎ 介入
                 </button>
                 <button
-                  disabled={busy || peeksRemaining <= 0}
+                  disabled={busy || peeksRemaining <= 0 || atRoundCap}
                   onClick={() => void handlePeek()}
                   className={cn(
                     "py-2 px-4 rounded-full text-[12px] transition border active:scale-95 tabular-nums",
-                    busy || peeksRemaining <= 0
+                    busy || peeksRemaining <= 0 || atRoundCap
                       ? "border-white/8 text-rose-200/25 cursor-not-allowed"
                       : "border-rose-300/30 text-rose-200/75 hover:bg-rose-300/5"
                   )}
@@ -646,4 +760,141 @@ export default function SimulatorPage() {
 function clampDelta(v: number): number {
   if (typeof v !== "number" || isNaN(v)) return 0;
   return Math.max(-10, Math.min(10, Math.round(v)));
+}
+
+// ====== 双人命盘速览：两个圆 + 中间相位连线 ======
+const ELEMENT_COLOR: Record<string, string> = {
+  火: "from-orange-300/35 to-red-400/35 border-orange-300/55",
+  土: "from-amber-300/30 to-yellow-700/30 border-amber-300/50",
+  风: "from-cyan-200/30 to-blue-300/30 border-cyan-200/55",
+  水: "from-blue-300/30 to-indigo-400/30 border-blue-300/55",
+};
+
+const ENERGY_COLOR: Record<string, string> = {
+  同频: "text-emerald-200",
+  和谐: "text-emerald-200",
+  互补: "text-cyan-200",
+  张力: "text-amber-200",
+  互照: "text-violet-200",
+  中性: "text-rose-200/60",
+};
+
+function PairChart({
+  user,
+  ta,
+  compatibility,
+}: {
+  user: import("@/lib/types").AstroBeing;
+  ta: import("@/lib/types").AstroBeing;
+  compatibility: NonNullable<
+    import("@/lib/types").OpeningProphecy["compatibility"]
+  > | null;
+}) {
+  return (
+    <div className="rounded-2xl border border-rose-300/15 bg-white/[0.02] px-3 py-3">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <AstroOrb being={user} side="left" />
+        <div className="flex flex-col items-center min-w-[90px]">
+          {compatibility ? (
+            <>
+              <div
+                className={cn(
+                  "font-serif-cn text-[13px] tracking-wider",
+                  ENERGY_COLOR[compatibility.sign.energy] || "text-rose-100"
+                )}
+              >
+                {compatibility.sign.energy}
+              </div>
+              <div className="my-1.5 w-full h-px bg-gradient-to-r from-rose-300/10 via-rose-300/55 to-rose-300/10" />
+              <div className="text-rose-200/55 text-[10px] tabular-nums">
+                相距 {compatibility.distance} 宫
+              </div>
+              <div className="text-rose-200/45 text-[9.5px] mt-0.5">
+                {aspectShortLabel(compatibility.sign.kind)}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-rose-200/35 text-[11px]">—</div>
+              <div className="my-1.5 w-full h-px bg-rose-300/10" />
+              <div className="text-rose-200/40 text-[9.5px] text-center leading-tight">
+                填了 ta 生日
+                <br />
+                才能算合盘
+              </div>
+            </>
+          )}
+        </div>
+        <AstroOrb being={ta} side="right" />
+      </div>
+    </div>
+  );
+}
+
+function aspectShortLabel(kind: string): string {
+  switch (kind) {
+    case "conjunction":
+      return "合相";
+    case "trine":
+      return "三分相";
+    case "sextile":
+      return "六分相";
+    case "square":
+      return "四分相";
+    case "opposition":
+      return "对分相";
+    default:
+      return "中性位";
+  }
+}
+
+function AstroOrb({
+  being,
+  side,
+}: {
+  being: import("@/lib/types").AstroBeing;
+  side: "left" | "right";
+}) {
+  const elementClass =
+    (being.element && ELEMENT_COLOR[being.element]) ||
+    "from-white/5 to-white/0 border-white/15";
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div
+        className={cn(
+          "w-16 h-16 rounded-full border bg-gradient-to-br flex flex-col items-center justify-center text-center",
+          elementClass
+        )}
+      >
+        {being.sign ? (
+          <>
+            <div className="font-serif-cn text-rose-50 text-[15px] leading-none">
+              {being.sign}
+            </div>
+            <div className="text-rose-100/65 text-[10px] mt-0.5">
+              {being.element}象
+            </div>
+          </>
+        ) : (
+          <div className="text-rose-100/45 text-[10px] leading-tight px-2">
+            未填生日
+          </div>
+        )}
+      </div>
+      <div className="text-rose-100/80 text-[11px] font-medium truncate max-w-[96px]">
+        {being.name}
+      </div>
+      <div className="flex flex-col items-center gap-0.5 text-[9.5px] text-rose-200/60 leading-tight">
+        {being.mbti && <span>{being.mbti}</span>}
+        {being.attachmentTypeZh && (
+          <span className="truncate max-w-[110px]">
+            {being.attachmentTypeZh.split("（")[0]}
+          </span>
+        )}
+        {being.scriptZh && side === "left" && (
+          <span className="text-rose-300/65">{being.scriptZh}</span>
+        )}
+      </div>
+    </div>
+  );
 }

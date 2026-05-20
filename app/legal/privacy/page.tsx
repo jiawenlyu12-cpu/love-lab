@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         隐私与使用声明
       </h1>
       <p className="text-rose-200/55 text-sm mb-8">
-        最近一次更新：2026-05-12
+        最近一次更新：2026-05-18
       </p>
 
       <section className="space-y-6 text-rose-100/90 text-sm leading-loose">
@@ -64,6 +64,12 @@ export default function PrivacyPage() {
             <strong>关闭浏览器后：</strong>
             数据仍在 localStorage 中保留。如需清除，点击报告页"换一对
             agent 再来一次"或在浏览器设置清除站点数据。
+          </p>
+          <p className="mt-2">
+            <strong>匿名使用统计：</strong>
+            我们会记录访问页面 + 按钮点击的<u>计数</u>（如"开始 setup
+            了多少次"），用于了解产品哪些环节卡住用户。每个浏览器只生成一个匿名
+            ID（uuid），不关联你的姓名 / 生日 / 答题内容。不上报任何第三方分析平台。
           </p>
         </div>
 

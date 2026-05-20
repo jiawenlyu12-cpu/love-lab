@@ -14,12 +14,42 @@ export const MBTI_CHOICES: MBTI[] = [
   "不知道",
 ];
 
+// 出生时辰下拉选项（用户和 ta 共用同一组 label）
+export const BIRTH_TIME_RANGES = [
+  "凌晨 (00:00-06:00)",
+  "上午 (06:00-12:00)",
+  "中午 (12:00-14:00)",
+  "下午 (14:00-18:00)",
+  "晚上 (18:00-24:00)",
+  "不知道",
+] as const;
+export type BirthTimeRange = typeof BIRTH_TIME_RANGES[number];
+
 export interface BaseProfile {
-  name: string;           // 你的姓名 / 昵称
-  birthday: string;       // YYYY-MM-DD
+  name: string;                 // 你的姓名 / 昵称
+  birthday: string;             // 你的生日 YYYY-MM-DD（必填）
+  birthTimeRange?: string;      // 你的出生时辰（选填）
   mbti: MBTI | "";
-  taName: string;         // ta 的代称
+  taName: string;               // ta 的代称
+  // ⭐ ta 的生日 + 时辰（都选填；填得越细，预言越准）
+  taBirthday?: string;          // YYYY-MM-DD
+  taBirthTimeRange?: string;
+  // ⭐ 关系发生的主场景（选填；空 = 让 AI 自己选）
+  scenarioHint?: string;
 }
+
+// 关系主场景预设
+export const SCENARIO_PRESETS = [
+  { key: "school", label: "校园同学", hint: "教室 / 食堂 / 图书馆 / 校园同社团" },
+  { key: "office", label: "同公司", hint: "工位 / 会议 / 下班路上 / 茶水间" },
+  { key: "online", label: "网友互联网", hint: "豆瓣 / 小红书 / 游戏 / 远距离纯靠消息" },
+  { key: "intro", label: "朋友介绍", hint: "共同朋友牵线 / 三人局慢慢熟" },
+  { key: "gym", label: "健身房 / 兴趣班", hint: "Crossfit / 跳舞 / 陶艺课 等固定时段相遇" },
+  { key: "neighbor", label: "邻居 / 偶遇", hint: "同小区 / 同一家咖啡店 / 通勤路线偶遇" },
+  { key: "ex", label: "前任 / 旧关系", hint: "分手后又联系 / 多年没见的同学" },
+  { key: "custom", label: "自定义", hint: "" },
+] as const;
+export type ScenarioPresetKey = typeof SCENARIO_PRESETS[number]["key"];
 
 // ====== Page 2 · Agent 养成（10 题） ======
 export interface QuizOption {
@@ -137,6 +167,104 @@ export interface KeyMoment {
   note: string;          // 一句话点评（不超过 30 字）
 }
 
+// ====== 开局预言（规则生成，同输入同输出） ======
+
+// 西方十二星座
+export const ZODIAC_SIGNS = [
+  "白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
+  "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼",
+] as const;
+export type ZodiacSign = typeof ZODIAC_SIGNS[number];
+
+// 4 元素
+export type SignElement = "火" | "土" | "风" | "水";
+
+// 5 种主要相位（合相 / 三分 / 六分 / 四分 / 对分）
+export type SignAspectKind =
+  | "conjunction"   // 合相：同星座
+  | "trine"         // 三分相：同元素、相距 4 宫
+  | "sextile"       // 六分相：火↔风 / 土↔水、相距 2 宫
+  | "square"        // 四分相：相距 3 宫、张力
+  | "opposition"    // 对分相：相距 6 宫、互照
+  | "neutral";      // 无明显相位
+
+// 用更柔和的能量分类（不带"冲克害"这类词）
+export type SignEnergy = "同频" | "和谐" | "互补" | "张力" | "互照" | "中性";
+
+export interface SignCompatibility {
+  kind: SignAspectKind;
+  userSign: ZodiacSign;
+  taSign: ZodiacSign;
+  userElement: SignElement;
+  taElement: SignElement;
+  label: string;        // "双子 × 水瓶 · 风风同频"
+  energy: SignEnergy;
+  descriptor: string;   // ≤30 字一句话
+}
+
+export type StreamDayKind =
+  | "self_strong"       // 比肩
+  | "self_yin_yang"     // 劫财
+  | "generates_me"      // 印星
+  | "i_generate"        // 食伤
+  | "controls_me"       // 官杀
+  | "i_control";        // 财星
+
+export type StreamDayEnergy = "强" | "助" | "泄" | "克" | "用";
+
+export interface StreamDayRelation {
+  kind: StreamDayKind;
+  label: string;        // "癸丑日 · 财星日"
+  energy: StreamDayEnergy;
+  descriptor: string;   // ≤30 字一句话
+}
+
+// ⭐ 双人命盘速览 · 给前端"双圆+连线"视觉用
+export interface AstroBeing {
+  name: string;                  // 用户姓名 / ta 代称
+  sign: ZodiacSign | null;       // 太阳星座
+  element: SignElement | null;
+  mbti?: string;                 // 仅用户有
+  attachmentTypeZh?: string;     // 仅用户有（来自 archetype）
+  scriptZh?: string;             // 仅用户有（来自 archetype.script）
+  trait: string;                 // ≤30 字白描
+}
+
+export interface OpeningProphecy {
+  // ===== 双人命盘速览（视觉核心）=====
+  user: AstroBeing;
+  ta: AstroBeing;
+
+  // ===== 主标题 =====
+  headline: string;              // ≤24 字
+  headlineEvidence: string;      // 「依据：xxx」一行小字
+
+  // ===== 文本段落 =====
+  userBackdrop: string;
+  taBackdrop: string;            // 与 userBackdrop 对称
+  compatibility: {
+    sign: SignCompatibility;
+    sentence: string;
+    distance: number;            // 黄道相距宫位数 (0-6)
+    evidenceLine: string;        // 「水瓶 11 宫 ↔ 狮子 5 宫 · 相距 6 宫」
+  } | null;
+  stageBackdrop: string;
+  archetypeReveal: string;       // 「12 题 → 焦虑型 · 拉扯剧本」，无 archetype 时空
+  screenshotsLine?: string;      // 有聊天截图时的低噪提示行：「📷 AI 已读 N 张聊天，ta 会更像真实的 ta」
+
+  // ===== 关键日 + 时刻 =====
+  keyDay: {
+    date: string;
+    streamDay: StreamDayRelation | null;
+    sentence: string;
+    evidenceLine: string;        // 依据小字（可选展开）
+  };
+  fatedMoment: string;
+  fatedMomentEvidence: string;   // 「⌛ 锚定：xxx」
+
+  fullText: string;              // 整段拼接（导出 / share 用）
+}
+
 // 单张主分享卡（合并原"主预言"+"金句"）
 export interface ShareCard {
   title: string;         // 4-8 字大标题
@@ -144,9 +272,23 @@ export interface ShareCard {
   punchline: string;     // 30-60 字，普适诗化金句（不含 ta 真名，可分行）
 }
 
+// ⭐ 5/20 推演结论三档
+export type Verdict = "will" | "maybe" | "wont";
+
+// 服务端规则化判定后的结论（不让 LLM 自由发挥）
+export interface FiveTwentyVerdict {
+  verdict: Verdict;                   // 会 / 差一步 / 不会
+  verdictLabel: string;               // "会" / "还差一步" / "不会"
+  keyMomentTime: string;              // 5/20 当天关键时刻 "23:47"
+  keyMomentAction: string;            // ≤30 字，关键时刻的关键动作
+  nextChanceDate?: string;            // wont 时给：下一次机会日 "2026-07-07"
+  nextChanceReason?: string;          // ≤30 字，为什么那天
+}
+
 // ====== 终局 ======
 export interface FinalSummary {
   shareCard: ShareCard;                 // ⭐ 一张可截图分享的合并卡
+  fiveTwenty?: FiveTwentyVerdict;       // ⭐ 5/20 三档结论（新）
   analysis?: RelationshipAnalysis;      // 3 维自我投射分析（默认折叠）
   keyMoments?: KeyMoment[];             // 关键转折点（折叠）
   // 兼容老字段（不再主用）
@@ -169,11 +311,19 @@ export interface SimulationState {
   quizAnswers: QuizAnswer[];
   userAgent: AgentForm;
   taAgent: AgentForm;
+  // ⭐ 用户上传的聊天截图 base64 dataURL 数组（最多 5 张）
+  chatScreenshots: string[];
   // ⭐ 新沙盘：回合历史 + 当前状态
   rounds: RoundEvent[];
   relationship: RelationshipState;
   // 读心剩余次数（默认 3）
   peeksRemaining: number;
+  // 同一对 agent 已重复推演的次数（0 = 首次）
+  replayCount: number;
+  // ⭐ 关系剧本类型（由 12 题规则化推导）— 注入到所有 LLM prompt
+  archetype: import("./relationship-archetype").RelationshipArchetype | null;
+  // ⭐ 人设库（最多 10 套）
+  agentLibrary: SavedAgentSet[];
   // ====== 老字段（保留兼容） ======
   scenes: PlayScene[];
   prefetched: PlayScene[];
@@ -181,6 +331,18 @@ export interface SimulationState {
   // ======
   finalSummary: FinalSummary | null;
   phase: SimPhase;
+}
+
+// 保存到本地的一套完整人设
+export interface SavedAgentSet {
+  id: string;                 // lib_xxx 本地唯一
+  createdAt: number;          // 首次保存时间
+  lastUsedAt: number;         // 最近一次推演时间
+  playCount: number;          // 累计推演次数（首演 + 重玩 + 重新载入）
+  base: BaseProfile;
+  userAgent: AgentForm;
+  taAgent: AgentForm;
+  quizAnswers: QuizAnswer[];
 }
 
 // ====== Agent 调用契约 ======

@@ -3,9 +3,11 @@
 import type {
   AgentForm,
   BaseProfile,
+  QuizAnswer,
   RelationshipState,
   RoundEvent,
 } from "./types";
+import type { RelationshipArchetype } from "./relationship-archetype";
 
 async function callAgent<T>(agent: string, payload: any): Promise<T> {
   const r = await fetch("/api/agents", {
@@ -43,6 +45,12 @@ export async function callRoundEngine(args: {
   prevRounds: RoundEvent[];
   hint?: string;
   images?: string[];
+  replayCount?: number;
+  archetype?: RelationshipArchetype | null;
+  scenarioHint?: string;
+  quizAnswers?: QuizAnswer[];
+  keyDate?: string;       // "YYYY-MM-DD"，关键日（默认 2026-05-20）
+  fatedMoment?: string;   // "HH:MM"，round 10 必落在此分钟（±15）
 }) {
   return callAgent<RoundEngineResult>("round-engine", args);
 }
@@ -78,6 +86,13 @@ export async function callIntervene(args: {
   prevRounds: RoundEvent[];
   userInputType: "message" | "post" | "wait";
   userInputContent: string;
+  replayCount?: number;
+  archetype?: RelationshipArchetype | null;
+  scenarioHint?: string;
+  quizAnswers?: QuizAnswer[];
+  images?: string[];
+  keyDate?: string;
+  fatedMoment?: string;
 }) {
   return callAgent<RoundEngineResult>("intervene", args);
 }
@@ -91,6 +106,11 @@ export async function callRelationshipSummary(args: {
   taAgent: AgentForm;
   rounds: RoundEvent[];
   finalState: RelationshipState;
+  replayCount?: number;
+  archetype?: RelationshipArchetype | null;
+  scenarioHint?: string;
+  keyDate?: string;
+  fatedMoment?: string;
 }) {
   return callAgent<{
     shareCard: {

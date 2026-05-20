@@ -18,10 +18,28 @@ const INJECTION_PATTERNS: RegExp[] = [
   /\bDAN mode\b/i,
 ];
 
-// 简单脏字（可按需扩展）。命中后整段标记为 [屏蔽]
+// 硬阻断：命中即拒绝。覆盖色情/暴力/严重侮辱/已知政治敏感词的基础集
+// 监管要求 AIGC 必须做内容过滤；这只是兜底层，生产环境强烈建议接百度/阿里内容安全 API
 const HARD_BLOCK: RegExp[] = [
-  /(?:操|草|fuck|shit|asshole)\b/i,
-  // 政治敏感不在 demo 范畴展开
+  // 粗口（多语）
+  /(?:操你妈|草你妈|你妈的|妈的逼|傻逼|sb\b|fuck|shit|asshole|cunt)/i,
+  // 性内容
+  /(?:做爱|约炮|裸聊|嫖|卖淫|强奸|奸污|猥亵|阴茎|阴道|手淫|自慰|性爱|porn|sex)/i,
+  // 暴力/自残
+  /(?:自杀|自残|割腕|跳楼|上吊|杀了|弄死|kill\s+(?:you|him|her))/i,
+  // 政治敏感（基础集，更全面的需接专业内容审核 API）
+  /(?:法轮功|六四|藏独|疆独|台独|港独|习近平|反共|颠覆国家)/i,
+  // 涉毒/涉赌
+  /(?:吸毒|贩毒|大麻|海洛因|冰毒|赌博网站)/i,
+];
+
+// 个人信息泄露检测：手机号 / 身份证号 / 邮箱 / 银行卡
+// 命中后会替换为 [已隐藏]，不阻断（允许用户输入但脱敏）
+const PII_PATTERNS: { pattern: RegExp; label: string }[] = [
+  { pattern: /\b1[3-9]\d{9}\b/g, label: "[手机号已隐藏]" },
+  { pattern: /\b\d{15}|\d{17}[\dXx]\b/g, label: "[证件号已隐藏]" },
+  { pattern: /\b[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, label: "[邮箱已隐藏]" },
+  { pattern: /\b\d{16,19}\b/g, label: "[卡号已隐藏]" },
 ];
 
 export interface SanitizeOptions {
@@ -74,7 +92,15 @@ export function sanitizeUserInput(
     }
   }
 
-  // 脏字检测
+  // PII 脱敏（不阻断，只替换）
+  for (const { pattern, label } of PII_PATTERNS) {
+    if (pattern.test(s)) {
+      s = s.replace(pattern, label);
+      altered = true;
+    }
+  }
+
+  // 硬阻断检测（粗口/色情/暴力/政治敏感/毒赌）
   for (const p of HARD_BLOCK) {
     if (p.test(s)) {
       blocked = true;

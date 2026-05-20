@@ -34,6 +34,20 @@ export const INTERVENE_SYSTEM_PROMPT = `你是【Intervene-Engine】，关系沙
 5. ✅ ta 可以"已读不回"——0 个 ta 反应是合法的，特别是当用户的动作过激/不合时宜
 6. ✅ user beats 第一条 message 必须是用户输入原文
 
+# 📷 用户上传的聊天截图（如果消息里附带 image）
+本次请求可能附带 1-5 张图片——这是用户和 ta 的真实微信聊天截图。**这是比 traits 更高优先级的 ta 风格信号**。
+
+读截图时关注：ta 的句长 / 标点 / 表情习惯 / 回复密度 / 谁先开口 / 对用户的称呼。
+
+**化用红线**（违反视为失败）：
+- ❌ 不照抄截图里的任何一句原话
+- ❌ 不出现截图里的真实人名 / 公司名 / 地名 / 餐厅名——必要时用 base.taName 或"ta"代替
+- ❌ taAction / eventText 不出现可被认出"昨天那条消息"的内容
+- ✅ 让 ta-agent 的 beat 在**句长 / 标点 / 表情风格**上贴合截图（内容自创）
+- ✅ 让 ta 的回复速度 / 是否秒回 / typing_revoked 频率呼应截图里的密度
+
+截图模糊或非聊天内容时，就忽略，按 traits + state 反应。
+
 # 输出 JSON（与 Round-Engine 一致）
 {
   "time": "HH:MM",
@@ -93,6 +107,12 @@ export interface InterveneInputArgs {
   userInputType: "message" | "post" | "wait";
   userInputContent: string;
   bazi?: BaziInfo | null;
+  replayCount?: number;
+  archetype?: import("../relationship-archetype").RelationshipArchetype | null;
+  keyDate?: string;
+  fatedMoment?: string;
+  scenarioHint?: string;
+  quizAnswers?: import("../types").QuizAnswer[];
 }
 
 function extractMinutes(text: string): number {
@@ -117,7 +137,53 @@ export function buildInterveneInput(args: InterveneInputArgs): string {
     userInputType,
     userInputContent,
     bazi,
+    replayCount,
+    archetype,
+    keyDate,
+    fatedMoment,
+    scenarioHint,
+    quizAnswers,
   } = args;
+  // 把用户填的关键场景题贴到 prompt（介入时也要让 ta 呼应这些选择）
+  const SCENE_QS_MAP: Record<string, string> = {
+    q1_stage: "关系阶段",
+    q3_zan_scene: "朋友圈被点赞时",
+    q4_reply_speed: "对 ta 回复速度的判断",
+    q6_farewell: "上次见面分别时",
+    q7_tired_reply: "用户跟 ta 说累时",
+    q9_520_eve: "5/19 晚上想到 ta 时",
+    q10_520_wish: "5/20 凌晨想收到的",
+  };
+  const scenePrefsLines = (quizAnswers || [])
+    .filter((a) => SCENE_QS_MAP[a.questionId])
+    .map((a) => `- ${SCENE_QS_MAP[a.questionId]}：用户选了「${a.optionText}」`)
+    .join("\n");
+  const scenePrefsBlock = scenePrefsLines
+    ? `\n# 🎬 用户的具体场景选择（ta 的反应必须呼应）\n${scenePrefsLines}\n`
+    : "";
+  const keyDateLine = keyDate || "2026-05-20";
+  const fatedHint = fatedMoment
+    ? `\n# 时刻锚点提示\n推演终点是 ${keyDateLine} ${fatedMoment}（仍未到）。本回合 time 必须在此之前。\n`
+    : "";
+  const scenarioHintBlock = scenarioHint
+    ? `\n# 📍 关系主场景（用户指定 — 必须严格贴合）
+"${scenarioHint}"
+
+⚠️ ta 的反应必须用场景里提取的「年代 + 地域 + 文化」常识：
+- 通信工具按年代（1980 之前=书信 / 1990s=BB 机+公话 / 2000s=QQ+短信 / 2010+=微信）
+- 流行语 / 称呼 / 服饰 / 物件 全部按年代来
+- 1985 年的回合不能有"微信" / "刷小红书"；2020 之前不能有"绝绝子 / 666 / yyds"
+- 地点和时刻要符合场景的真实时空逻辑\n`
+    : "";
+  const replayN = replayCount ?? 0;
+  const archetypeBlock = archetype
+    ? `\n# 📜 关系剧本类型
+- 依恋模式: ${archetype.zh.attachment}
+- 追逃角色: ${archetype.zh.pursuer}
+- 表达色调: ${archetype.zh.tone}
+- 剧本路线: ${archetype.zh.script}
+⚠️ ta 的反应必须符合 ta 在这个剧本里的角色定位；不要给用户"想要的回应"，要给"剧本会给的回应"。\n`
+    : "";
 
   const latestMins = prevRounds.reduce((max, r) => {
     return Math.max(max, extractMinutes(r.time));
@@ -168,8 +234,13 @@ ${recap}
 - 用户内容："${userInputContent}"
 
 # 任务
-${mustBeLater}
+${mustBeLater}${fatedHint}${scenarioHintBlock}${scenePrefsBlock}
 基于用户的具体动作 + ta 当前隐藏状态，演 ta 的真实反应。
 
+${archetypeBlock}${
+  replayN > 0
+    ? `\n# ⚠️ 重玩扰动 (replay #${replayN})\n这是同一对 agent 的第 ${replayN + 1} 次推演。让 ta 的反应和之前不同（节奏、温度、方向都可变）。种子: ${Date.now() % 100000}`
+    : ""
+}
 输出严格 JSON：{ time, eventText, userAction, taAction, beats[], delta }`;
 }

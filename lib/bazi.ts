@@ -3,6 +3,7 @@
 
 // @ts-ignore - lunar-javascript 没有官方 .d.ts
 import { Solar } from "lunar-javascript";
+import type { StreamDayRelation } from "./types";
 
 export interface BaziInfo {
   available: boolean;
@@ -155,6 +156,93 @@ export function computeBazi(birthday: string, birthTimeRange?: string): BaziInfo
       fiveElements: elem,
       narrative,
     };
+  } catch {
+    return null;
+  }
+}
+
+// ============================================
+// ⭐ 流日 vs 用户日干 · 算出某一天对用户是吉/凶/平
+// ============================================
+const GEN_ORDER: Array<keyof BaziInfo["fiveElements"]> = [
+  "wood", "fire", "earth", "metal", "water",
+];
+
+export function computeStreamDay(
+  date: string,
+  userDayStem: string
+): StreamDayRelation | null {
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const year = parseInt(m[1]);
+  const month = parseInt(m[2]);
+  const day = parseInt(m[3]);
+  try {
+    const solar = Solar.fromYmd(year, month, day);
+    const lunar = solar.getLunar();
+    const dayGanZhi: string = lunar.getDayInGanZhi();
+    const dayStem = dayGanZhi.charAt(0);
+    const userElem = STEM_TO_ELEMENT[userDayStem];
+    const dayElem = STEM_TO_ELEMENT[dayStem];
+    if (!userElem || !dayElem) return null;
+
+    if (userElem === dayElem) {
+      const userYang = ["甲", "丙", "戊", "庚", "壬"].includes(userDayStem);
+      const dayYang = ["甲", "丙", "戊", "庚", "壬"].includes(dayStem);
+      if (userYang === dayYang) {
+        return {
+          kind: "self_strong",
+          label: `${dayGanZhi}日 · 比肩日`,
+          energy: "强",
+          descriptor: "和你同频的一天，你做主，但容易和同路人较劲",
+        };
+      }
+      return {
+        kind: "self_yin_yang",
+        label: `${dayGanZhi}日 · 劫财日`,
+        energy: "强",
+        descriptor: "底气足，但要警惕被同路的人分走一些",
+      };
+    }
+
+    const userIdx = GEN_ORDER.indexOf(userElem);
+    const dayIdx = GEN_ORDER.indexOf(dayElem);
+    const next = (i: number) => GEN_ORDER[(i + 1) % 5];
+    const ctrl = (i: number) => GEN_ORDER[(i + 2) % 5];
+
+    if (next(dayIdx) === userElem) {
+      return {
+        kind: "generates_me",
+        label: `${dayGanZhi}日 · 印星日`,
+        energy: "助",
+        descriptor: "被滋养的一天，适合接住别人递来的善意",
+      };
+    }
+    if (next(userIdx) === dayElem) {
+      return {
+        kind: "i_generate",
+        label: `${dayGanZhi}日 · 食伤日`,
+        energy: "泄",
+        descriptor: "你今天主导表达，但会消耗自己一些",
+      };
+    }
+    if (ctrl(dayIdx) === userElem) {
+      return {
+        kind: "controls_me",
+        label: `${dayGanZhi}日 · 官杀日`,
+        energy: "克",
+        descriptor: "压力大的一天，别人节奏快过你，谨慎主动",
+      };
+    }
+    if (ctrl(userIdx) === dayElem) {
+      return {
+        kind: "i_control",
+        label: `${dayGanZhi}日 · 财星日`,
+        energy: "用",
+        descriptor: "你能拿到主动权的一天，可以试探",
+      };
+    }
+    return null;
   } catch {
     return null;
   }

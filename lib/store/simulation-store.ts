@@ -10,11 +10,13 @@ import type {
   QuizAnswer,
   RelationshipState,
   RoundEvent,
+  SavedAgentSet,
   ScenarioMode,
   SimPhase,
   SimulationState,
   StateDelta,
 } from "../types";
+import { deriveArchetype } from "../relationship-archetype";
 
 const DEFAULT_BASE: BaseProfile = {
   name: "",
@@ -45,18 +47,18 @@ const DEFAULT_RELATIONSHIP: RelationshipState = {
   taMood: 50,
 };
 
-// 根据 Q1 关系阶段答案推导初始 RelationshipState
+// 根据 Q1 关系阶段答案推导初始 RelationshipState（新 4 选项语义）
 function deriveInitialRelationship(answers: QuizAnswer[]): RelationshipState {
   const q1 = answers.find((a) => a.questionId === "q1_stage");
   switch (q1?.optionKey) {
-    case "A": // 破冰期
-      return { closeness: 22, userMood: 60, taAffection: 18, taMood: 52 };
-    case "B": // 高度暧昧
+    case "A": // 暗恋期（ta 还不知道）— 用户单方面情绪高、ta 隐藏好感很低
+      return { closeness: 12, userMood: 65, taAffection: 15, taMood: 52 };
+    case "B": // 暧昧期（双向心照）— 高 all
       return { closeness: 58, userMood: 55, taAffection: 62, taMood: 55 };
-    case "C": // 冷战
-      return { closeness: 38, userMood: 32, taAffection: 50, taMood: 28 };
-    case "D": // 断联
-      return { closeness: 14, userMood: 42, taAffection: 30, taMood: 45 };
+    case "C": // 在一起了（恋爱中）— 已建立的暖
+      return { closeness: 70, userMood: 60, taAffection: 68, taMood: 58 };
+    case "D": // 关系卡住了（冷战 / 断联 / 想重连）— 低暖、用户焦虑、ta 情绪低
+      return { closeness: 28, userMood: 35, taAffection: 42, taMood: 32 };
     default:
       return DEFAULT_RELATIONSHIP;
   }
@@ -75,6 +77,9 @@ export interface SimPreset {
 
 interface SimStore extends SimulationState {
   setBase: (p: Partial<BaseProfile>) => void;
+  setChatScreenshots: (imgs: string[]) => void;
+  addChatScreenshot: (img: string) => void;
+  removeChatScreenshot: (idx: number) => void;
   initAgentsFromBase: () => void;
 
   addQuizAnswer: (a: QuizAnswer) => void;
@@ -97,6 +102,15 @@ interface SimStore extends SimulationState {
 
   setFinalSummary: (s: FinalSummary) => void;
 
+  // ⭐ 保留 agent 人设，只清沙盘 → 直接进 /simulator 重推一次
+  // replayCount 自增，prompt 层据此让剧情走不同方向
+  keepAgentsResetRounds: () => void;
+
+  // ⭐ 人设库 actions
+  saveCurrentToLibrary: () => string;      // 返回 id（空字符串 = 没存：人设不完整）
+  loadFromLibrary: (id: string) => void;   // 载入到 current + 清沙盘 + 跳 simulator
+  deleteFromLibrary: (id: string) => void;
+
   // 老字段（兼容）
   pushPrefetched: (s: PlayScene) => void;
   popPrefetched: () => PlayScene | null;
@@ -117,6 +131,9 @@ const initialGame = {
   rounds: [] as RoundEvent[],
   relationship: DEFAULT_RELATIONSHIP,
   peeksRemaining: 3,
+  replayCount: 0,
+  archetype: null as SimulationState["archetype"],
+  chatScreenshots: [] as string[],
   scenes: [] as PlayScene[],
   prefetched: [] as PlayScene[],
   finalSummary: null as FinalSummary | null,
@@ -127,7 +144,16 @@ const initialGame = {
 const initialState: SimulationState = {
   base: DEFAULT_BASE,
   ...initialGame,
+  agentLibrary: [] as SavedAgentSet[],
 };
+
+// 人设库去重签名：name + taName + birthday + mbti
+// 同一组身份再次保存 → 更新时间戳而不是新增
+function libSignature(base: BaseProfile): string {
+  return [base.name, base.taName, base.birthday, base.mbti].join("::");
+}
+
+const LIBRARY_MAX = 10;
 
 export const useSimStore = create<SimStore>()(
   persist(
@@ -135,6 +161,16 @@ export const useSimStore = create<SimStore>()(
       ...initialState,
 
       setBase: (p) => set({ base: { ...get().base, ...p } }),
+      setChatScreenshots: (imgs) => set({ chatScreenshots: imgs.slice(0, 5) }),
+      addChatScreenshot: (img) => {
+        const cur = get().chatScreenshots || [];
+        if (cur.length >= 5) return;
+        set({ chatScreenshots: [...cur, img] });
+      },
+      removeChatScreenshot: (idx) => {
+        const cur = get().chatScreenshots || [];
+        set({ chatScreenshots: cur.filter((_, i) => i !== idx) });
+      },
 
       initAgentsFromBase: () => {
         const b = get().base;
@@ -175,8 +211,13 @@ export const useSimStore = create<SimStore>()(
 
       applyPreset: (p) => {
         const dedupe = (xs: string[]) => Array.from(new Set(xs));
+        const curLib = get().agentLibrary || [];
+        const archetype = p.quizAnswers.length > 0
+          ? deriveArchetype(p.quizAnswers)
+          : null;
         set({
           ...initialState,
+          agentLibrary: curLib, // 保留人设库不被 preset 清掉
           base: { ...DEFAULT_BASE, ...p.base },
           userAgent: {
             ...DEFAULT_USER_AGENT,
@@ -192,14 +233,23 @@ export const useSimStore = create<SimStore>()(
           },
           quizAnswers: p.quizAnswers,
           relationship: deriveInitialRelationship(p.quizAnswers),
+          archetype,
           phase: "play",
         });
       },
 
       // ⭐ 沙盘 actions
       initRelationship: () => {
-        const r = deriveInitialRelationship(get().quizAnswers);
-        set({ relationship: r, rounds: [], peeksRemaining: 3 });
+        const ans = get().quizAnswers;
+        const r = deriveInitialRelationship(ans);
+        // 同步推导关系剧本类型（注入 LLM 用）
+        const archetype = ans.length > 0 ? deriveArchetype(ans) : null;
+        set({
+          relationship: r,
+          rounds: [],
+          peeksRemaining: 3,
+          archetype,
+        });
       },
 
       appendRound: (r) => set({ rounds: [...get().rounds, r] }),
@@ -241,6 +291,116 @@ export const useSimStore = create<SimStore>()(
 
       setFinalSummary: (s) => set({ finalSummary: s }),
 
+      keepAgentsResetRounds: () => {
+        const cur = get();
+        const r = deriveInitialRelationship(cur.quizAnswers);
+        const sig = libSignature(cur.base);
+        // 顺手在 library 里更新 lastUsedAt / playCount
+        const updatedLib = (cur.agentLibrary || []).map((s) =>
+          libSignature(s.base) === sig
+            ? { ...s, lastUsedAt: Date.now(), playCount: s.playCount + 1 }
+            : s
+        );
+        set({
+          rounds: [],
+          relationship: r,
+          peeksRemaining: 3,
+          finalSummary: null,
+          scenes: [],
+          prefetched: [],
+          phase: "play",
+          replayCount: (cur.replayCount || 0) + 1,
+          agentLibrary: updatedLib,
+        });
+      },
+
+      saveCurrentToLibrary: () => {
+        const cur = get();
+        // 人设没捏完不存
+        if (!cur.base.name?.trim() || cur.userAgent.traits.length === 0) {
+          return "";
+        }
+        const sig = libSignature(cur.base);
+        const existing = (cur.agentLibrary || []).find(
+          (s) => libSignature(s.base) === sig
+        );
+        if (existing) {
+          // 已存在 → 更新内容快照 + lastUsedAt + playCount++
+          const next: SavedAgentSet = {
+            ...existing,
+            base: cur.base,
+            userAgent: cur.userAgent,
+            taAgent: cur.taAgent,
+            quizAnswers: cur.quizAnswers,
+            lastUsedAt: Date.now(),
+            playCount: existing.playCount + 1,
+          };
+          set({
+            agentLibrary: cur.agentLibrary.map((s) =>
+              s.id === existing.id ? next : s
+            ),
+          });
+          return existing.id;
+        }
+        // 新增
+        const id = `lib_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const item: SavedAgentSet = {
+          id,
+          createdAt: Date.now(),
+          lastUsedAt: Date.now(),
+          playCount: 1,
+          base: cur.base,
+          userAgent: cur.userAgent,
+          taAgent: cur.taAgent,
+          quizAnswers: cur.quizAnswers,
+        };
+        let lib = [...(cur.agentLibrary || []), item];
+        // 超过上限 → 按 lastUsedAt 倒序保留 LIBRARY_MAX 条
+        if (lib.length > LIBRARY_MAX) {
+          lib = lib
+            .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
+            .slice(0, LIBRARY_MAX);
+        }
+        set({ agentLibrary: lib });
+        return id;
+      },
+
+      loadFromLibrary: (id) => {
+        const cur = get();
+        const entry = (cur.agentLibrary || []).find((s) => s.id === id);
+        if (!entry) return;
+        const rel = deriveInitialRelationship(entry.quizAnswers);
+        const archetype = entry.quizAnswers.length > 0
+          ? deriveArchetype(entry.quizAnswers)
+          : null;
+        set({
+          base: entry.base,
+          userAgent: entry.userAgent,
+          taAgent: entry.taAgent,
+          quizAnswers: entry.quizAnswers,
+          rounds: [],
+          relationship: rel,
+          peeksRemaining: 3,
+          finalSummary: null,
+          scenes: [],
+          prefetched: [],
+          phase: "play",
+          replayCount: 0,
+          archetype,
+          agentLibrary: (cur.agentLibrary || []).map((s) =>
+            s.id === id
+              ? { ...s, lastUsedAt: Date.now(), playCount: s.playCount + 1 }
+              : s
+          ),
+        });
+      },
+
+      deleteFromLibrary: (id) => {
+        set({
+          agentLibrary: (get().agentLibrary || []).filter((s) => s.id !== id),
+        });
+      },
+
       // 老字段（兼容）
       pushPrefetched: (s) =>
         set({ prefetched: [...get().prefetched, s] }),
@@ -258,7 +418,8 @@ export const useSimStore = create<SimStore>()(
       setPhase: (p) => set({ phase: p }),
 
       resetGame: () => set({ ...initialGame }),
-      resetAll: () => set({ ...initialState }),
+      resetAll: () =>
+        set({ ...initialState, agentLibrary: get().agentLibrary || [] }),
     }),
     {
       name: "ai-love-lab-sim",

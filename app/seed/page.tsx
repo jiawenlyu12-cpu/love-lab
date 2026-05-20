@@ -69,7 +69,7 @@ export default function SeedPage() {
         正在把你送进沙盘 …
       </div>
       <div className="text-rose-200/55 text-xs tracking-wider">
-        预填：周声 · INFJ · 林深 · 高度暧昧期
+        预填：周声 · INFJ · 林深 · 暧昧期
       </div>
     </main>
   );

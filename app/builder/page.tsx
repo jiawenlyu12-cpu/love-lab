@@ -9,6 +9,7 @@ import { QUIZ_QUESTIONS } from "@/lib/quiz";
 import QAvatar from "@/components/avatar/QAvatar";
 import { cn } from "@/lib/utils";
 import type { QuizAnswer, QuizOption } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 export default function BuilderPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function BuilderPage() {
     shiftTaHue,
     setPhase,
     initRelationship,
+    saveCurrentToLibrary,
   } = useSimStore();
 
   const [qIndex, setQIndex] = useState(0);
@@ -42,6 +44,7 @@ export default function BuilderPage() {
       initAgentsFromBase();
     }
     setPhase("builder");
+    track("builder_started");
   }, []); // eslint-disable-line
 
   const totalQ = QUIZ_QUESTIONS.length;
@@ -59,6 +62,7 @@ export default function BuilderPage() {
       taTrait: opt.taTrait,
     };
     addQuizAnswer(answer);
+    track("builder_q_answered");
 
     if (opt.userTrait) {
       pushUserTrait(opt.userTrait);
@@ -80,8 +84,12 @@ export default function BuilderPage() {
   }
 
   function startPlay() {
+    track("builder_completed");
     // 进入沙盘前：根据 Q1 关系阶段初始化 RelationshipState
     initRelationship();
+    // ⭐ 自动入库（同 base 已存在则更新时间戳）
+    const id = saveCurrentToLibrary();
+    if (id) track("agent_saved");
     setPhase("play");
     router.push("/simulator");
   }
@@ -100,7 +108,7 @@ export default function BuilderPage() {
             ←
           </Link>
           <div className="text-rose-200/55 text-[10px] sm:text-[11px] tracking-wider truncate">
-            Step 2 / 3 · 捏 agent
+            Step 2 / 3 · 关键 3 题
           </div>
           <div className="text-rose-200/55 text-[10px] sm:text-[11px] tabular-nums">
             {Math.min(qIndex, totalQ)} / {totalQ}

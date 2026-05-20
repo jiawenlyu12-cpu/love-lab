@@ -41,7 +41,10 @@ export default function RoundDigest({
       <div className="px-4 py-3">
         <div className="flex items-baseline justify-between mb-1">
           <span className="text-rose-200/55 text-[11px] tracking-[0.25em]">
-            Round {round.round} · {round.time}
+            5/20 · {round.time}
+            <span className="text-rose-200/35 ml-2 text-[10px]">
+              · 第 {round.round} 刻
+            </span>
           </span>
           {round.intervened && (
             <span className="text-amber-200/90 text-[10px] tracking-wider font-medium bg-amber-300/15 px-2 py-0.5 rounded-full border border-amber-300/30">

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import WechatHint from "@/components/WechatHint";
+import PageviewTracker from "@/components/PageviewTracker";
 
 export const metadata: Metadata = {
   title: "心动模拟器 · AI Love-Lab",
@@ -34,6 +36,8 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="min-h-screen antialiased overflow-x-hidden">
+        <WechatHint />
+        <PageviewTracker />
         {children}
       </body>
     </html>
